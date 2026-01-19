@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaviewer</title>
+    <style>
+        /* --- 基本設定 --- */
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-color: #1a202c;
+            --text-main: #222;
+            --warning-orange: #f97316;
+            --danger-red: #dc2626;
+            --success-green: #16a34a;
+        }
+
+        html,
+        body {
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+            background: var(--bg-color);
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #dropOverlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(37, 99, 235, 0.3);
+            border: 4px dashed #60a5fa;
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        #dropOverlay.active {
+            display: flex;
+        }
+
+        /* --- ヘッダー --- */
+        .top-header-container {
+            width: 100%;
+            flex-shrink: 0;
+            z-index: 30;
+            background-color: #5d4037;
+            background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 5px), linear-gradient(to bottom, #6d4c41, #3e2723);
+            border-bottom: 1px solid #3e2723;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-content {
+            padding: 8px 12px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .metal-panel {
+            background: linear-gradient(135deg, #ffffff 0%, #e8e8e8 45%, #b0b0b0 50%, #d8d8d8 51%, #fcfcfc 100%);
+            box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.9), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            border: 1px solid #777;
+            display: flex;
+            align-items: center;
+            padding: 6px 15px;
+            height: 100%;
+        }
+
+        .header-split-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .header-left-section {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-input {
+            height: 36px;
+            padding: 0 8px;
+            font-size: 14px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .segment-group {
+            display: flex;
+            background: #cbd5e1;
+            border-radius: 4px;
+            padding: 2px;
+            border: 1px solid #94a3b8;
+            height: 36px;
+        }
+
+        .segment-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #475569;
+            border-radius: 3px;
+            transition: all 0.2s;
+            padding: 0 4px;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .segment-item:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .segment-item.active {
+            background: #475569;
+            color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 色付きアクティブ状態 */
+        .segment-item.active[data-val="all"] {
+            background: #22c55e;
+        }
+
+        .segment-item.active[data-val="15"] {
+            background: #f97316;
+        }
+
+        .segment-item.active[data-val="18"] {
+            background: #ef4444;
+        }
+
+        .segment-item.active[data-val="18g"] {
+            background: #7f1d1d;
+        }
+
+        .segment-item.active[data-flag="favorite"] {
+            background: #fbbf24;
+        }
+
+        .segment-item.active[data-flag="love"] {
+            background: #ec4899;
+        }
+
+        .segment-item.active[data-flag="bookmark"] {
+            background: #3b82f6;
+        }
+
+        .segment-item.active[data-flag="check"] {
+            background: #22c55e;
+        }
+
+        .segment-item.active[data-mode="view"] {
+            background: #475569;
+        }
+
+        .segment-item.active[data-mode="edit"] {
+            background: #2563eb;
+        }
+
+        .metallic-btn {
+            padding: 0 10px;
+            font-size: 14px;
+            color: #eee;
+            background: linear-gradient(145deg, #555, #333);
+            border: 1px solid #222;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+
+        .metallic-btn:hover {
+            filter: brightness(1.2);
+        }
+
+        .metallic-btn.trash {
+            background: linear-gradient(145deg, #7f1d1d, #450a0a);
+            color: #fca5a5;
+        }
+
+        /* オートセーブ用ステータス表示 */
+        #autoSaveStatus {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            padding: 0 8px;
+            min-width: 80px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #autoSaveStatus.visible {
+            opacity: 1;
+        }
+
+        /* --- ボディ --- */
+        .app-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        aside.sidebar {
+            width: 200px;
+            background: #0f172a;
+            border-right: 1px solid #334155;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .tab-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            color: #94a3b8;
+            font-size: 13px;
+            user-select: none;
+        }
+
+        .tab-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+        }
+
+        .tab-item.active {
+            background: rgba(245, 158, 11, 0.15);
+            border-left-color: var(--warning-orange);
+            color: var(--warning-orange);
+            font-weight: bold;
+        }
+
+        .tab-item.drag-target-active {
+            background: #bae6fd !important;
+            color: #0f172a !important;
+            border: 2px dashed #3b82f6;
+        }
+
+        .tab-item.dragging-tab {
+            opacity: 0.5;
+            background: #475569;
+        }
+
+        .tab-item.drag-over-tab {
+            border-top: 2px solid #3b82f6;
+        }
+
+        .new-tab-btn {
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-top: 1px solid #334155;
+            background: rgba(0, 0, 0, 0.2);
+            color: #94a3b8;
+        }
+
+        .new-tab-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .delete-tab-btn {
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: #450a0a;
+            color: #fca5a5;
+            font-size: 12px;
+            border-top: 1px solid #7f1d1d;
+        }
+
+        .delete-tab-btn:hover {
+            background: #7f1d1d;
+            color: #fff;
+        }
+
+        main.content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            min-width: 0;
+        }
+
+        .main-grid-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background-color: #0f3826;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 16px;
+            padding-bottom: 80px;
+        }
+
+        .grid-container.cols-1 {
+            grid-template-columns: repeat(1, 1fr);
+        }
+
+        .grid-container.cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-container.cols-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .grid-container.cols-8 {
+            grid-template-columns: repeat(8, 1fr);
+        }
+
+        .metal-card {
+            background: linear-gradient(135deg, #ffffff 0%, #dcdcdc 50%, #b0b0b0 100%);
+            border: 1px solid #777;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .metal-card.rating-all {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #22c55e 100%);
+            border-color: #22c55e;
+        }
+
+        .metal-card.rating-15 {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #f97316 100%);
+            border-color: #f97316;
+        }
+
+        .metal-card.rating-18 {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 50%, #ef4444 100%);
+            border-color: #ef4444;
+        }
+
+        .metal-card.rating-18g {
+            background: linear-gradient(135deg, #1f0b0b 0%, #611515 50%, #7f1d1d 100%);
+            border-color: #7f1d1d;
+        }
+
+        .metal-card.is-dragging-source {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            border: 2px dashed #999;
+        }
+
+        .metal-card.drag-target-hover {
+            transform: scale(1.05);
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            z-index: 100;
+            background-color: #eff6ff;
+        }
+
+        body.is-dragging-tag .metal-card * {
+            pointer-events: none;
+        }
+
+        /* 削除済みスタイル */
+        .metal-card.deleted {
+            transform: scale(0.95);
+            border-color: #fca5a5;
+            background-color: #fee2e2;
+        }
+
+        .metal-card.deleted .card-img-box img,
+        .metal-card.deleted .edit-col-right input,
+        .metal-card.deleted .edit-col-right textarea,
+        .metal-card.deleted .edit-col-right label,
+        .metal-card.deleted .edit-col-right .tag-editor-container,
+        .metal-card.deleted .age-slider-container,
+        .metal-card.deleted .metallic-btn:not(.trash) {
+            opacity: 0.4;
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        .metal-card.deleted .card-img-box::after {
+            content: "DELETE";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            font-size: 24px;
+            font-weight: 900;
+            color: rgba(220, 38, 38, 0.8);
+            border: 3px solid rgba(220, 38, 38, 0.8);
+            padding: 4px 10px;
+            border-radius: 6px;
+            z-index: 20;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .metal-card.deleted .metallic-btn.trash {
+            opacity: 1 !important;
+            filter: none !important;
+            z-index: 50;
+        }
+
+        .card-img-box {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #222;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s;
+        }
+
+        .metal-card:hover .card-img-box img {
+            transform: scale(1.05);
+        }
+
+        .edit-layout-row {
+            display: flex;
+            gap: 12px;
+            height: 100%;
+        }
+
+        .edit-col-left {
+            width: 180px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .edit-col-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .edit-label {
+            font-size: 10px;
+            font-weight: bold;
+            
+            /* ★変更: 黒文字に変更 */
+            color: #000;
+
+            /* ★追加: 白フチ (入力欄と同じスタイル) */
+            text-shadow: 
+                1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
+                0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
+            
+            /* 念のため少しマージンを調整して読みやすくします */
+            margin-bottom: 2px;
+            margin-left: 2px;
+        }
+
+        .card-input-area {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #f1f5f9;
+
+            color: #000;
+            font-weight: bold;
+            text-shadow: 
+                1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
+                0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
+        }
+
+        /* 4列・8列時の調整 */
+        .grid-container.cols-4 .edit-col-left,
+        .grid-container.cols-8 .edit-col-left {
+            width: 100%;
+        }
+
+        .grid-container.cols-4 .edit-layout-row,
+        .grid-container.cols-8 .edit-layout-row {
+            flex-direction: column;
+        }
+
+        .age-slider-container {
+            display: flex;
+            background: #cbd5e1;
+            border-radius: 4px;
+            padding: 2px;
+            border: 1px solid #94a3b8;
+        }
+
+        .age-option {
+            flex: 1;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 4px 0;
+            cursor: pointer;
+            color: #475569;
+        }
+
+        .age-option:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .age-option.active[data-age="all"] {
+            background: #22c55e;
+            color: white;
+        }
+
+        .age-option.active[data-age="15"] {
+            background: #f97316;
+            color: white;
+        }
+
+        .age-option.active[data-age="18"] {
+            background: #ef4444;
+            color: white;
+        }
+
+        .age-option.active[data-age="18g"] {
+            background: #7f1d1d;
+            color: white;
+        }
+
+        aside.right-sidebar {
+            width: 200px;
+            background: #0f172a;
+            border-left: 1px solid #334155;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tag-cloud-bar {
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-content: flex-start;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .header-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: #cbd5e0;
+            border-radius: 12px;
+            color: #2d3748;
+            cursor: pointer;
+            margin-bottom: 2px;
+        }
+
+        .header-tag:hover {
+            background: #e2e8f0;
+        }
+
+        .viewer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .viewer-main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .viewer-img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+
+        .viewer-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .tag-editor-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 4px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            background: #f1f5f9;
+            min-height: 32px;
+            align-items: center;
+            cursor: text;
+        }
+
+        .tag-editor-container:focus-within {
+            background: #fff;
+            border-color: #3b82f6;
+            outline: none;
+        }
+
+        .tag-pill {
+            background: #e2e8f0;
+            border: 1px solid #cbd5e0;
+            border-radius: 12px;
+            padding: 2px 6px 2px 10px;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: bold;
+            white-space: nowrap;
+
+            color: #000;
+            text-shadow: 
+                1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
+                0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            color: #ef4444;
+            font-weight: bold;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tag-add-input {
+            border: none;
+            background: transparent;
+            font-size: 11px;
+            outline: none;
+            flex: 1;
+            min-width: 60px;
+            padding: 2px;
+            color: #000;
+            font-weight: bold;
+            text-shadow: 
+                1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
+                0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
+        }
+
+        .card-info {
+            padding: 8px;
+        }
+
+        .metal-text-inset {
+            font-size: 12px;
+            font-weight: bold;
+            color: #000;
+            /* 文字色を真っ黒に */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 0;
+            padding: 0 4px;
+
+            /* ★追加: 白いフチ取り (上下左右に1pxずつ影を落としてフチに見せる) */
+            text-shadow:
+                1px 1px 0 #fff,
+                -1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px -1px 0 #fff,
+                0px 1px 0 #fff,
+                0px -1px 0 #fff,
+                -1px 0px 0 #fff,
+                1px 0px 0 #fff;
+        }
+
+        .view-control-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            padding: 0 4px;
+        }
+
+        .view-btn-group {
+            display: flex;
+            gap: 2px;
+        }
+
+        .view-date-text {
+            font-size: 12px;
+            font-weight: bold;
+            color: #444;
+            text-shadow: 1px 1px 0 #fff;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .grid-container.cols-8 .view-control-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        .grid-container.cols-8 .view-btn-group {
+            width: 100%;
+        }
+
+        .grid-container.cols-8 .view-date-text {
+            width: 100%;
+            margin-left: 0;
+            text-align: left;
+            font-size: 10px;
+            color: #555;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .meta-info-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 24px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-family: serif;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+
+        .meta-info-btn:hover {
+            background: rgba(37, 99, 235, 0.9);
+            border-color: #fff;
+        }
+
+        .meta-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .meta-overlay.active {
+            display: flex;
+        }
+
+        .meta-box {
+            background: #f1f5f9;
+            width: 500px;
+            max-width: 90%;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .meta-textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            background: #fff;
+            resize: none;
+            outline: none;
+            color: #334155;
+        }
+
+        .slide-settings-box {
+            background: #f1f5f9;
+            width: 300px;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slide-option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #334155;
+            font-weight: bold;
+        }
+
+        .slide-radio-group {
+            display: flex;
+            background: #e2e8f0;
+            border-radius: 4px;
+            padding: 2px;
+        }
+
+        .slide-radio-label {
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        .slide-radio-input {
+            display: none;
+        }
+
+        .slide-radio-input:checked+.slide-radio-label {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #refreshBtn {
+            background: linear-gradient(145deg, #16a34a, #14532d);
+            color: #ffffff;
+            border-color: #14532d;
+            font-weight: 900;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes btn-shrink {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0.9);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .click-anim {
+            animation: btn-shrink 0.15s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <div id="dropOverlay">＋ ドロップして追加</div>
+
+        <div class="top-header-container">
+            <div id="mainHeaderPanel" class="panel-content">
+                <div class="metal-panel">
+                    <div class="header-split-container">
+                        <div class="header-left-section">
+                            <div style="display:flex; flex:1; max-width:400px; position:relative; gap:4px;">
+                                <input type="text" id="searchInput" class="search-input" placeholder="検索..."
+                                    style="border-radius:4px;">
+                                <div id="searchResetBtn" class="hidden"
+                                    style="position:absolute; right:100px; top:0; height:36px; line-height:36px; padding:0 10px; cursor:pointer; font-weight:bold; color:#666;">
+                                    ×</div>
+                                <button id="searchBtn" class="metallic-btn"
+                                    style="height:36px; white-space:nowrap;">検索</button>
+                                <button id="clearSearchBtn" class="metallic-btn"
+                                    style="height:36px; width:36px; font-weight:bold;" title="検索解除">×</button>
+                            </div>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <div class="segment-group" style="width: 180px;">
+                                <div class="segment-item header-age-item" data-val="all">SFW</div>
+                                <div class="segment-item header-age-item" data-val="15">R15</div>
+                                <div class="segment-item header-age-item" data-val="18">R18</div>
+                                <div class="segment-item header-age-item" data-val="18g">G</div>
+                            </div>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <div class="segment-group" style="width: 140px;">
+                                <div class="segment-item flag-filter-item" data-flag="favorite" title="Favorite">★</div>
+                                <div class="segment-item flag-filter-item" data-flag="love" title="Love">♥</div>
+                                <div class="segment-item flag-filter-item" data-flag="bookmark" title="Bookmark">⚑</div>
+                                <div class="segment-item flag-filter-item" data-flag="check" title="Check">✔</div>
+                            </div>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <div class="segment-group" style="width: 120px;">
+                                <div class="segment-item sort-btn active" data-sort="date">日付</div>
+                                <div class="segment-item sort-btn" data-sort="name">名前</div>
+                            </div>
+
+                            <button id="orderBtn" class="metallic-btn" style="width:36px; height:36px;" title="昇順/降順">
+                                <svg id="orderIcon" style="width:20px; height:20px;" viewBox="0 0 256 256">
+                                    <path
+                                        d="M213.66,90.34a8,8,0,0,0-11.32,0L128,164.69,53.66,90.34a8,8,0,0,0-11.32,11.32l80,80a8,8,0,0,0,11.32,0l80-80A8,8,0,0,0,213.66,90.34Z">
+                                    </path>
+                                </svg>
+                            </button>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <div class="segment-group" style="width: 120px;">
+                                <div class="segment-item col-switch-btn" data-col="1">1</div>
+                                <div class="segment-item col-switch-btn" data-col="2">2</div>
+                                <div class="segment-item col-switch-btn active" data-col="4">4</div>
+                                <div class="segment-item col-switch-btn" data-col="8">8</div>
+                            </div>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <div class="segment-group" style="width: 100px;">
+                                <div class="segment-item mode-item active" data-mode="view">閲覧</div>
+                                <div class="segment-item mode-item" data-mode="edit">編集</div>
+                            </div>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <span id="autoSaveStatus"></span>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <div style="display:flex; gap:4px; margin-left:12px; align-items:center;">
+                                <button id="slideStartBtn" class="metallic-btn"
+                                    style="width:36px; height:36px; font-size:16px;" title="スライドショー開始">▶</button>
+                                <button id="slideSettingsBtn" class="metallic-btn"
+                                    style="width:36px; height:36px; font-size:16px;" title="スライドショー設定">⚙</button>
+                            </div>
+
+                            <div style="width:1px; height:24px; background:#999; margin-left:12px;"></div>
+
+                            <button id="openFolderBtn" class="metallic-btn"
+                                style="margin-left:12px; width:36px; height:36px; font-size:16px;"
+                                title="フォルダを開く">📂</button>
+                            <button id="refreshBtn" class="metallic-btn"
+                                style="margin-left:4px; width:36px; height:36px; font-size:16px;"
+                                title="リストを更新">↻</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-body">
+            <aside class="sidebar">
+                <div id="tabList" style="flex:1; overflow-y:auto; padding:8px 0;"></div>
+                <div id="newTabBtn" class="new-tab-btn">＋ 新規リスト</div>
+                <div id="deleteTabBtn" class="delete-tab-btn">リストを削除</div>
+            </aside>
+            <main class="content-area">
+                <div class="main-grid-area">
+                    <div id="imageGrid" class="grid-container view-mode cols-4">
+                        <div class="empty-state">リストを選択してください</div>
+                    </div>
+                </div>
+            </main>
+            <aside class="right-sidebar">
+                <div
+                    style="padding:10px; text-align:center; font-size:11px; font-weight:bold; color:#94a3b8; border-bottom:1px solid #334155;">
+                    TAG CLOUD</div>
+                <div id="tagCloudBar" class="tag-cloud-bar"></div>
+            </aside>
+        </div>
+
+        <div style="position:fixed; bottom:10px; right:10px; z-index:50;">
+            <div class="metal-panel" style="padding:4px 12px; font-size:12px; font-weight:bold;">Total: <span
+                    id="totalCount">0</span></div>
+        </div>
+    </div>
+
+    <div id="imageViewer" class="viewer-overlay hidden">
+        <div
+            style="display:flex; justify-content:space-between; align-items:center; padding:10px 20px; background:rgba(0,0,0,0.5); color:#fff; z-index:2001;">
+            <div style="display:flex; align-items:center; gap: 12px; overflow:hidden; padding-right: 20px;">
+                <div id="viewerTitle" style="font-weight:bold; font-size:16px; white-space:nowrap;"></div>
+                <div id="viewerTags" style="display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;"></div>
+            </div>
+            <button id="closeViewerBtn"
+                style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer; flex-shrink:0;">&times;</button>
+        </div>
+        <div id="viewerMain" class="viewer-main">
+            <img id="viewerImg" src="" alt="" draggable="false">
+        </div>
+        <div
+            style="height:60px; background:rgba(30,30,30,0.9); display:flex; justify-content:center; align-items:center; gap:20px; color:#fff;">
+            <button id="prevImgBtn" class="metallic-btn" style="width:40px;">←</button>
+            <span id="zoomInfo">100%</span>
+            <button id="nextImgBtn" class="metallic-btn" style="width:40px;">→</button>
+        </div>
+    </div>
+
+    <div id="metaDialog" class="meta-overlay">
+        <div class="meta-box">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
+                <span style="font-weight:bold; color:#334155;">📷 Image Metadata</span>
+                <span id="closeMetaBtn" style="cursor:pointer; font-size:20px; color:#64748b;">&times;</span>
+            </div>
+            <textarea id="metaContent" class="meta-textarea" readonly></textarea>
+            <div style="display:flex; justify-content:flex-end;">
+                <button id="copyMetaBtn" class="metallic-btn"
+                    style="width:auto; padding:8px 16px; display:flex; align-items:center; gap:6px;">📋
+                    クリップボードにコピー</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="slideSettingsDialog" class="meta-overlay">
+        <div class="slide-settings-box">
+            <div style="border-bottom:1px solid #cbd5e1; padding-bottom:8px; font-weight:bold; color:#334155;">スライドショー設定
+            </div>
+            <div class="slide-option-row">
+                <span>再生順序</span>
+                <div class="slide-radio-group">
+                    <label><input type="radio" name="slideOrder" class="slide-radio-input" value="seq" checked><span
+                            class="slide-radio-label">順番</span></label>
+                    <label><input type="radio" name="slideOrder" class="slide-radio-input" value="random"><span
+                            class="slide-radio-label">ランダム</span></label>
+                </div>
+            </div>
+            <div class="slide-option-row">
+                <span>間隔 (秒)</span>
+                <select id="slideIntervalSelect" style="padding:4px; border-radius:4px; border:1px solid #cbd5e0;">
+                    <option value="1000">1秒</option>
+                    <option value="2000">2秒</option>
+                    <option value="3000" selected>3秒</option>
+                    <option value="5000">5秒</option>
+                    <option value="10000">10秒</option>
+                </select>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                <button id="closeSlideSettingsBtn" class="metallic-btn"
+                    style="width:auto; padding:6px 16px;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentState = {
+            images: [],
+            tabs: [],
+            activeTabId: null,
+            search: "",
+            sortMode: "date",
+            sortOrder: "desc",
+            gridColumns: 4,
+            editMode: false,
+            filterRatings: new Set(['all', '15', '18', '18g']),
+            filterFlags: new Set()
+        };
+
+        let viewerState = { activeId: null, zoom: 1.0, panX: 0, panY: 0, isDragging: false, startX: 0, startY: 0, displayList: [] };
+        let slideshowState = { playing: false, timer: null, interval: 3000, mode: 'seq', unshown: [] };
+        let saveTimer = null; // ★追加: オートセーブ用タイマー
+
+        const els = {};
+
+        function setupElements() {
+            els.grid = document.getElementById('imageGrid');
+            els.total = document.getElementById('totalCount');
+            els.tabList = document.getElementById('tabList');
+            els.newTabBtn = document.getElementById('newTabBtn');
+            els.tagCloudBar = document.getElementById('tagCloudBar');
+            els.searchInput = document.getElementById('searchInput');
+            els.searchResetBtn = document.getElementById('searchResetBtn');
+            els.searchBtn = document.getElementById('searchBtn');
+            els.clearSearchBtn = document.getElementById('clearSearchBtn');
+            els.orderBtn = document.getElementById('orderBtn');
+            els.autoSaveStatus = document.getElementById('autoSaveStatus');
+            els.viewer = document.getElementById('imageViewer');
+            els.viewerMain = document.getElementById('viewerMain');
+            els.viewerImg = document.getElementById('viewerImg');
+            els.closeViewer = document.getElementById('closeViewerBtn');
+            els.prevBtn = document.getElementById('prevImgBtn');
+            els.nextBtn = document.getElementById('nextImgBtn');
+            els.zoomInfo = document.getElementById('zoomInfo');
+            els.viewerTitle = document.getElementById('viewerTitle');
+            els.viewerTags = document.getElementById('viewerTags');
+            els.dropOverlay = document.getElementById('dropOverlay');
+            els.deleteTabBtn = document.getElementById('deleteTabBtn');
+            els.metaDialog = document.getElementById('metaDialog');
+            els.metaContent = document.getElementById('metaContent');
+            els.closeMetaBtn = document.getElementById('closeMetaBtn');
+            els.copyMetaBtn = document.getElementById('copyMetaBtn');
+            els.slideStartBtn = document.getElementById('slideStartBtn');
+            els.slideSettingsBtn = document.getElementById('slideSettingsBtn');
+            els.slideSettingsDialog = document.getElementById('slideSettingsDialog');
+            els.closeSlideSettingsBtn = document.getElementById('closeSlideSettingsBtn');
+            els.slideIntervalSelect = document.getElementById('slideIntervalSelect');
+            els.openFolderBtn = document.getElementById('openFolderBtn');
+            els.refreshBtn = document.getElementById('refreshBtn');
+        }
+
+        async function init() {
+            setupElements();
+            if (window.pywebview) await loadFromPython();
+            else {
+                // ダミーデータ
+                const dummyImgs = [];
+                for (let i = 1; i <= 12; i++) dummyImgs.push({ id: 'img' + i, title: 'イラスト ' + i, image: null, rating: 'all', date: Date.now(), tags: [] });
+                currentState.tabs = [{ id: 'list1', name: 'List 1' }];
+                currentState.activeTabId = 'list1';
+                currentState.images = normalizeImages(dummyImgs);
+                renderTabList(); renderGrid(); renderTagCloud();
+            }
+            setupEvents();
+            setupDropEvents();
+            updateOrderIcon();
+            updateHeaderAgeUI();
+            updateHeaderFlagUI();
+        }
+
+        function normalizeImages(list) {
+            return list.map(img => {
+                let r = String(img.rating || 'all').toLowerCase().trim();
+                if (!['all', '15', '18', '18g'].includes(r)) r = 'all';
+                img.rating = r;
+                ['favorite', 'love', 'bookmark', 'check'].forEach(f => { img[f] = !!img[f]; });
+                if (!img.date) img.date = Date.now();
+                return img;
+            });
+        }
+
+        function toLocalISOString(timestamp) {
+            if (!timestamp) return '';
+            const d = new Date(timestamp);
+            if (isNaN(d.getTime())) return '';
+            const pad = n => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        function fromLocalISOString(str) { return str ? new Date(str).getTime() : 0; }
+
+        // ★追加: オートセーブ機能 (デバウンス処理)
+        // delay: ミリ秒。0なら即時保存。
+        function triggerAutoSave(delay = 1000) {
+            els.autoSaveStatus.textContent = "保存中...";
+            els.autoSaveStatus.classList.add('visible');
+
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(async () => {
+                await performAutoSave();
+                els.autoSaveStatus.textContent = "保存完了";
+                // 2秒後に表示を消す
+                setTimeout(() => {
+                    if (els.autoSaveStatus.textContent === "保存完了") {
+                        els.autoSaveStatus.classList.remove('visible');
+                    }
+                }, 2000);
+            }, delay);
+        }
+
+        async function performAutoSave() {
+            // 削除フラグがついているものはPython側で削除、それ以外は保存
+            const toDelete = currentState.images.filter(i => i._deleted).map(i => i.id);
+            const toKeep = currentState.images.filter(i => !i._deleted);
+
+            if (window.pywebview) {
+                if (toDelete.length > 0) {
+                    await pywebview.api.delete_files(currentState.activeTabId, toDelete);
+                    currentState.images = toKeep; // メモリ上からも完全に消す
+                }
+                await pywebview.api.save_metadata(currentState.activeTabId, currentState.images);
+            }
+            // 削除されたものがあれば再描画が必要
+            if (toDelete.length > 0) {
+                renderGrid();
+                renderTagCloud();
+            }
+        }
+
+        function createTagEditor(item, currentTags) {
+            const container = document.createElement('div');
+            container.className = 'tag-editor-container';
+
+            const updateDOM = (shouldFocus = false) => {
+                container.innerHTML = '';
+                currentTags.forEach((tag, index) => {
+                    const pill = document.createElement('span');
+                    pill.className = 'tag-pill';
+                    pill.textContent = tag;
+                    const removeBtn = document.createElement('span');
+                    removeBtn.className = 'tag-remove';
+                    removeBtn.textContent = '×';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        currentTags.splice(index, 1);
+                        item.tags = currentTags; // 直接更新
+                        triggerAutoSave(0); // 即保存
+                        updateDOM(true);
+                        renderTagCloud();
+                    };
+                    pill.appendChild(removeBtn);
+                    container.appendChild(pill);
+                });
+                const input = document.createElement('input');
+                input.className = 'tag-add-input';
+                input.placeholder = '+タグ';
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = input.value.trim();
+                        if (val && !currentTags.includes(val)) {
+                            currentTags.push(val);
+                            item.tags = currentTags; // 直接更新
+                            triggerAutoSave(0); // 即保存
+                            updateDOM(true);
+                            renderTagCloud();
+                        } else { input.value = ''; }
+                    }
+                    if (e.key === 'Backspace' && input.value === '' && currentTags.length > 0) {
+                        currentTags.pop();
+                        item.tags = currentTags; // 直接更新
+                        triggerAutoSave(0); // 即保存
+                        updateDOM(true);
+                        renderTagCloud();
+                    }
+                };
+                container.appendChild(input);
+                if (shouldFocus) input.focus();
+            };
+            updateDOM(false);
+            return container;
+        }
+
+        async function loadFromPython() {
+            try {
+                const folders = await pywebview.api.get_lists();
+                if (folders.length > 0) {
+                    currentState.tabs = folders;
+                    if (!currentState.activeTabId) currentState.activeTabId = folders[0].id;
+                    renderTabList();
+                    await loadImagesInCurrentTab();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadImagesInCurrentTab() {
+            if (!currentState.activeTabId) return;
+            els.grid.innerHTML = '<div class="empty-state">読み込み中...</div>';
+            try {
+                const list = await pywebview.api.get_image_list(currentState.activeTabId);
+                currentState.images = list.map(img => {
+                    img.image = `list/${encodeURIComponent(currentState.activeTabId)}/${encodeURIComponent(img.id)}`;
+                    return img;
+                });
+                currentState.images = normalizeImages(currentState.images);
+                renderGrid();
+                renderTagCloud();
+            } catch (e) { console.error(e); }
+        }
+
+        function setupDropEvents() {
+            const app = document.getElementById('app');
+            let dragCounter = 0;
+            window.addEventListener('dragover', (e) => e.preventDefault());
+            window.addEventListener('dragenter', (e) => {
+                if (!e.dataTransfer.types || Array.from(e.dataTransfer.types).indexOf('Files') === -1) return;
+                e.preventDefault(); dragCounter++; els.dropOverlay.classList.add('active');
+            });
+            window.addEventListener('dragleave', (e) => {
+                if (!e.dataTransfer.types || Array.from(e.dataTransfer.types).indexOf('Files') === -1) return;
+                e.preventDefault(); dragCounter--; if (dragCounter === 0) els.dropOverlay.classList.remove('active');
+            });
+            window.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                if (!e.dataTransfer.types || Array.from(e.dataTransfer.types).indexOf('Files') === -1) return;
+                dragCounter = 0; els.dropOverlay.classList.remove('active');
+                if (!window.pywebview) return;
+                const items = e.dataTransfer.items;
+                if (!items) return;
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i].webkitGetAsEntry();
+                    if (item) {
+                        if (item.isFile) {
+                            if (!currentState.activeTabId) { alert("リストを選択してください"); continue; }
+                            await readFileAndUpload(item, currentState.activeTabId);
+                        } else if (item.isDirectory) {
+                            await readDirectoryAndUpload(item);
+                        }
+                    }
+                }
+                if (window.pywebview) await loadFromPython();
+            });
+        }
+
+        function readFileAndUpload(fileEntry, targetFolderId) {
+            return new Promise((resolve) => {
+                fileEntry.file(file => {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const b64 = e.target.result;
+                        await pywebview.api.save_image_from_drop(targetFolderId, file.name, b64);
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+        }
+        async function readDirectoryAndUpload(dirEntry) {
+            const newFolderName = await pywebview.api.create_list_auto_rename(dirEntry.name);
+            if (!newFolderName) return;
+            const dirReader = dirEntry.createReader();
+            const entries = await new Promise(resolve => dirReader.readEntries(r => resolve(r)));
+            for (let entry of entries) {
+                if (entry.isFile) await readFileAndUpload(entry, newFolderName);
+            }
+        }
+
+        function renderTabList() {
+            els.tabList.innerHTML = '';
+            currentState.tabs.forEach((tab, index) => {
+                const d = document.createElement('div');
+                d.className = `tab-item ${tab.id === currentState.activeTabId ? 'active' : ''}`;
+                d.textContent = tab.name;
+                d.draggable = true; // タブ自体の並び替え用
+
+                d.ondblclick = async (e) => {
+                    e.stopPropagation();
+                    const newName = prompt("リスト名を変更:", tab.name);
+                    if (newName && newName !== tab.name) {
+                        if (window.pywebview) {
+                            const success = await pywebview.api.rename_list(tab.id, newName);
+                            if (success) {
+                                if (currentState.activeTabId === tab.id) currentState.activeTabId = newName;
+                                loadFromPython();
+                            }
+                        }
+                    }
+                };
+                d.onclick = () => {
+                    if (currentState.activeTabId === tab.id) return;
+                    currentState.activeTabId = tab.id;
+                    document.querySelectorAll('.tab-item').forEach(item => item.classList.remove('active'));
+                    d.classList.add('active');
+                    if (window.pywebview) loadImagesInCurrentTab();
+                    else renderTabList();
+                };
+
+                d.ondragstart = (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', index);
+                    d.classList.add('dragging-tab');
+                };
+                d.ondragend = () => {
+                    d.classList.remove('dragging-tab');
+                    document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('drag-over-tab'));
+                };
+                d.ondragover = (e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer.types.includes('application/x-pm-image-id')) {
+                        if (tab.id !== currentState.activeTabId) d.classList.add('drag-target-active');
+                        e.dataTransfer.dropEffect = 'move';
+                    } else {
+                        d.classList.add('drag-over-tab');
+                    }
+                };
+                d.ondragleave = () => {
+                    d.classList.remove('drag-target-active');
+                    d.classList.remove('drag-over-tab');
+                };
+                d.ondrop = async (e) => {
+                    e.preventDefault();
+                    d.classList.remove('drag-target-active');
+                    d.classList.remove('drag-over-tab');
+
+                    const imageId = e.dataTransfer.getData('application/x-pm-image-id');
+                    if (imageId) {
+                        if (tab.id === currentState.activeTabId) return;
+                        if (window.pywebview) {
+                            const success = await pywebview.api.move_image(currentState.activeTabId, imageId, tab.id);
+                            if (success) {
+                                currentState.images = currentState.images.filter(i => i.id !== imageId);
+                                renderGrid(); renderTagCloud();
+                            }
+                        }
+                        return;
+                    }
+                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    if (isNaN(fromIndex)) return;
+                    const toIndex = index;
+                    if (fromIndex === toIndex) return;
+                    const movedItem = currentState.tabs[fromIndex];
+                    currentState.tabs.splice(fromIndex, 1);
+                    currentState.tabs.splice(toIndex, 0, movedItem);
+                    renderTabList();
+                    if (window.pywebview) {
+                        const orderList = currentState.tabs.map(t => t.id);
+                        await pywebview.api.save_list_order(orderList);
+                    }
+                };
+                els.tabList.appendChild(d);
+            });
+        }
+
+        function renderGrid() {
+            els.grid.innerHTML = '';
+            els.grid.className = `grid-container cols-${currentState.gridColumns} ${currentState.editMode ? 'edit-mode' : 'view-mode'}`;
+
+            let filtered = currentState.images.filter(item => {
+                if (item._deleted) return false; // 削除フラグがあるものは表示しない
+                if (currentState.search) {
+                    if (currentState.search.startsWith('#')) {
+                        const tagQuery = currentState.search.substring(1).trim();
+                        if (!item.tags.includes(tagQuery)) return false;
+                    } else {
+                        const text = (item.title || '') + (item.tags || []).join(' ');
+                        if (!text.includes(currentState.search)) return false;
+                    }
+                }
+                if (currentState.filterRatings.size > 0 && !currentState.filterRatings.has(item.rating)) return false;
+                if (currentState.filterFlags.size > 0) {
+                    let match = false;
+                    currentState.filterFlags.forEach(flag => { if (item[flag]) match = true; });
+                    if (!match) return false;
+                }
+                return true;
+            });
+
+            filtered.sort((a, b) => {
+                const va = currentState.sortMode === 'date' ? (a.date || 0) : (a.title || '');
+                const vb = currentState.sortMode === 'date' ? (b.date || 0) : (b.title || '');
+                if (va < vb) return currentState.sortOrder === 'asc' ? -1 : 1;
+                if (va > vb) return currentState.sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            els.total.textContent = `${filtered.length} / ${currentState.images.length}`;
+            viewerState.displayList = filtered.map(i => i.id);
+
+            if (filtered.length === 0) {
+                els.grid.innerHTML = '<div class="empty-state">画像がありません</div>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.id = `card-${item.id}`;
+                card.className = `metal-card rating-${item.rating || 'all'}`;
+
+                // --- ★修正: ドラッグ処理の競合回避 ---
+                if (currentState.editMode) {
+                    card.draggable = true;
+                    card.onmousedown = (e) => {
+                        // 入力要素の上ではドラッグ無効化
+                        if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.closest('.tag-editor-container')) {
+                            card.draggable = false;
+                            e.stopPropagation();
+                        } else {
+                            card.draggable = true;
+                        }
+                    };
+                    card.onmouseup = () => { card.draggable = true; };
+                    card.onmouseleave = () => { card.draggable = true; };
+
+                    card.ondragstart = (e) => {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('application/x-pm-image-id', item.id);
+                        setTimeout(() => card.classList.add('is-dragging-source'), 0);
+                    };
+                    card.ondragend = () => card.classList.remove('is-dragging-source');
+
+                    // タグ受け入れ
+                    card.ondragenter = (e) => { if (document.body.classList.contains('is-dragging-tag')) card.classList.add('drag-target-hover'); };
+                    card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
+                    card.ondragleave = () => card.classList.remove('drag-target-hover');
+                    card.ondrop = (e) => {
+                        e.preventDefault();
+                        card.classList.remove('drag-target-hover');
+                        const tagText = e.dataTransfer.getData('text/plain');
+                        if (tagText) addTagToItem(item.id, tagText);
+                    };
+                }
+
+                if (currentState.editMode) {
+                    card.style.padding = '10px';
+                    const row = document.createElement('div'); row.className = 'edit-layout-row';
+                    const left = document.createElement('div'); left.className = 'edit-col-left';
+                    const imgBox = document.createElement('div'); imgBox.className = 'card-img-box'; imgBox.style.borderRadius = '4px';
+
+                    const infoBtn = document.createElement('div'); infoBtn.className = 'meta-info-btn'; infoBtn.textContent = 'i';
+                    infoBtn.onclick = (e) => { e.stopPropagation(); showMetadataDialog(item); };
+                    imgBox.appendChild(infoBtn);
+
+                    const img = document.createElement('img'); img.src = item.image; img.draggable = false;
+                    imgBox.onclick = () => openViewer(item.id);
+                    imgBox.appendChild(img);
+
+                    const ageSlider = document.createElement('div'); ageSlider.className = 'age-slider-container';
+                    ['all', '15', '18', '18g'].forEach(k => {
+                        const opt = document.createElement('div'); opt.className = `age-option ${item.rating === k ? 'active' : ''}`;
+                        opt.dataset.age = k; opt.textContent = k === 'all' ? 'SFW' : k.toUpperCase();
+                        opt.onclick = () => { item.rating = k; triggerAutoSave(0); renderGrid(); };
+                        ageSlider.appendChild(opt);
+                    });
+
+                    const btnRow = document.createElement('div'); btnRow.style.display = 'flex'; btnRow.style.gap = '4px';
+                    const makeToggle = (label, key, col) => {
+                        const b = document.createElement('button'); b.className = 'metallic-btn'; b.style.flex = '1'; b.textContent = label;
+                        if (item[key]) { b.style.color = col; b.style.borderColor = col; b.style.background = '#333'; }
+                        b.onclick = () => { item[key] = !item[key]; triggerAutoSave(0); renderGrid(); };
+                        return b;
+                    };
+                    btnRow.appendChild(makeToggle('★', 'favorite', '#fbbf24'));
+                    btnRow.appendChild(makeToggle('♥', 'love', '#ec4899'));
+                    btnRow.appendChild(makeToggle('⚑', 'bookmark', '#3b82f6'));
+                    btnRow.appendChild(makeToggle('✔', 'check', '#22c55e'));
+
+                    left.appendChild(imgBox); left.appendChild(ageSlider); left.appendChild(btnRow);
+
+                    const right = document.createElement('div'); right.className = 'edit-col-right';
+
+                    const titleRow = document.createElement('div');
+                    titleRow.style.display = 'flex'; titleRow.style.justifyContent = 'space-between'; titleRow.style.alignItems = 'center';
+                    const tLabel = document.createElement('label'); tLabel.className = 'edit-label'; tLabel.textContent = 'タイトル';
+                    const delBtn = document.createElement('button'); delBtn.className = 'metallic-btn trash';
+                    delBtn.style.fontSize = '12px'; delBtn.style.padding = '0 8px'; delBtn.style.height = '20px';
+                    delBtn.textContent = '🗑';
+                    delBtn.onclick = () => {
+                        if (confirm('削除しますか？')) {
+                            item._deleted = true; triggerAutoSave(0);
+                        }
+                    };
+                    titleRow.appendChild(tLabel); titleRow.appendChild(delBtn);
+                    right.appendChild(titleRow);
+
+                    const tInput = document.createElement('input'); tInput.className = 'card-input-area';
+                    tInput.value = item.title || '';
+                    tInput.oninput = (e) => { item.title = e.target.value; triggerAutoSave(1000); };
+                    right.appendChild(tInput);
+
+                    const dateLabel = document.createElement('label'); dateLabel.className = 'edit-label'; dateLabel.textContent = '日付';
+                    const dateInput = document.createElement('input'); dateInput.type = 'datetime-local'; dateInput.className = 'card-input-area';
+                    dateInput.value = toLocalISOString(item.date);
+                    dateInput.oninput = (e) => { item.date = fromLocalISOString(e.target.value); triggerAutoSave(1000); };
+                    right.appendChild(dateLabel); right.appendChild(dateInput);
+
+                    const tagLabel = document.createElement('label'); tagLabel.className = 'edit-label'; tagLabel.textContent = 'タグ';
+                    right.appendChild(tagLabel); right.appendChild(createTagEditor(item, item.tags || []));
+
+                    const capLbl = document.createElement('label'); capLbl.className = 'edit-label'; capLbl.textContent = 'メモ';
+                    const capTxt = document.createElement('textarea'); capTxt.className = 'card-input-area';
+                    capTxt.style.flex = '1'; capTxt.style.resize = 'none'; capTxt.value = item.caption || '';
+                    capTxt.oninput = (e) => { item.caption = e.target.value; triggerAutoSave(1000); };
+                    right.appendChild(capLbl); right.appendChild(capTxt);
+
+                    row.appendChild(left); row.appendChild(right); card.appendChild(row);
+
+                } else {
+                    // --- Viewer Mode ---
+                    const imgBox = document.createElement('div'); imgBox.className = 'card-img-box';
+                    const img = document.createElement('img'); img.src = item.image;
+                    imgBox.onclick = () => openViewer(item.id);
+                    imgBox.appendChild(img);
+                    card.appendChild(imgBox);
+
+                    const info = document.createElement('div'); info.className = 'card-info';
+                    const ctrlRow = document.createElement('div'); ctrlRow.className = 'view-control-row';
+
+                    const btnGroup = document.createElement('div'); btnGroup.className = 'view-btn-group';
+                    const makeViewBtn = (label, key, col) => {
+                        const b = document.createElement('button'); b.className = 'metallic-btn';
+                        b.style.padding = '2px 8px'; b.style.fontSize = '12px'; b.textContent = label;
+                        if (item[key]) { b.style.color = col; b.style.borderColor = col; b.style.background = '#333'; b.style.boxShadow = `0 0 5px ${col}80`; }
+                        else { b.style.opacity = '0.7'; }
+                        b.onclick = (e) => { e.stopPropagation(); item[key] = !item[key]; triggerAutoSave(0); renderGrid(); };
+                        return b;
+                    };
+                    btnGroup.appendChild(makeViewBtn('★', 'favorite', '#fbbf24'));
+                    btnGroup.appendChild(makeViewBtn('♥', 'love', '#ec4899'));
+                    btnGroup.appendChild(makeViewBtn('⚑', 'bookmark', '#3b82f6'));
+                    btnGroup.appendChild(makeViewBtn('✔', 'check', '#22c55e'));
+
+                    const dateDiv = document.createElement('div'); dateDiv.className = 'view-date-text';
+                    const dObj = new Date(item.date);
+                    dateDiv.textContent = !isNaN(dObj.getTime()) ? `${dObj.getFullYear()}/${(dObj.getMonth() + 1).toString().padStart(2, '0')}/${dObj.getDate().toString().padStart(2, '0')} ${dObj.getHours().toString().padStart(2, '0')}:${dObj.getMinutes().toString().padStart(2, '0')}` : '';
+
+                    ctrlRow.appendChild(btnGroup); ctrlRow.appendChild(dateDiv);
+
+                    const t = document.createElement('div'); t.className = 'metal-text-inset';
+                    t.textContent = item.title || 'No Title'; t.title = item.title;
+
+                    info.appendChild(ctrlRow); info.appendChild(t); card.appendChild(info);
+                }
+                els.grid.appendChild(card);
+            });
+        }
+
+        function renderTagCloud() {
+            els.tagCloudBar.innerHTML = '';
+            const counts = {};
+            currentState.images.forEach(i => { if (!i._deleted) (i.tags || []).forEach(t => counts[t] = (counts[t] || 0) + 1); });
+            Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([t, c]) => {
+                const s = document.createElement('span'); s.className = 'header-tag'; s.textContent = `${t} (${c})`;
+                s.draggable = true;
+                s.ondragstart = (e) => {
+                    if (!currentState.editMode) { e.preventDefault(); return; }
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('text/plain', t);
+                    document.body.classList.add('is-dragging-tag');
+                };
+                s.ondragend = () => document.body.classList.remove('is-dragging-tag');
+                s.onclick = () => {
+                    const query = `#${t}`; els.searchInput.value = query; currentState.search = query;
+                    els.searchResetBtn.classList.remove('hidden'); renderGrid();
+                };
+                els.tagCloudBar.appendChild(s);
+            });
+        }
+
+        function addTagToItem(id, newTag) {
+            const item = currentState.images.find(i => i.id === id);
+            if (!item || item.tags.includes(newTag)) return;
+            item.tags.push(newTag);
+            triggerAutoSave(0);
+            renderGrid(); renderTagCloud();
+        }
+
+        function updateOrderIcon() {
+            const svg = els.orderBtn.querySelector('svg');
+            svg.style.fill = '#ffffff'; els.orderBtn.style.color = '#ffffff';
+            if (currentState.sortOrder === 'asc') {
+                svg.style.transform = 'rotate(180deg)'; els.orderBtn.title = '古い順 (昇順)';
+                els.orderBtn.style.background = 'linear-gradient(145deg, #ef4444, #b91c1c)';
+            } else {
+                svg.style.transform = 'rotate(0deg)'; els.orderBtn.title = '新しい順 (降順)';
+                els.orderBtn.style.background = 'linear-gradient(145deg, #3b82f6, #1d4ed8)';
+            }
+        }
+        function updateHeaderAgeUI() {
+            document.querySelectorAll('.header-age-item').forEach(btn => {
+                if (currentState.filterRatings.has(btn.dataset.val)) btn.classList.add('active'); else btn.classList.remove('active');
+            });
+        }
+        function updateHeaderFlagUI() {
+            document.querySelectorAll('.flag-filter-item').forEach(btn => {
+                if (currentState.filterFlags.has(btn.dataset.flag)) btn.classList.add('active'); else btn.classList.remove('active');
+            });
+        }
+        function attachAnim(el) {
+            if (!el) return;
+            el.addEventListener('click', () => { el.classList.remove('click-anim'); void el.offsetWidth; el.classList.add('click-anim'); });
+        }
+
+        function setupEvents() {
+            els.newTabBtn.onclick = async () => {
+                const n = prompt("新規リスト名"); if (!n) return;
+                if (window.pywebview) { if (await pywebview.api.create_new_list(n)) loadFromPython(); }
+            };
+            els.closeMetaBtn.onclick = () => els.metaDialog.classList.remove('active');
+            els.metaDialog.onclick = (e) => { if (e.target === els.metaDialog) els.metaDialog.classList.remove('active'); };
+            els.copyMetaBtn.onclick = () => {
+                els.metaContent.select(); document.execCommand('copy');
+                const orig = els.copyMetaBtn.innerHTML; els.copyMetaBtn.innerHTML = '✅ コピーしました！';
+                els.copyMetaBtn.style.background = '#22c55e';
+                setTimeout(() => { els.copyMetaBtn.innerHTML = orig; els.copyMetaBtn.style.background = ''; }, 1500);
+            };
+
+            els.slideStartBtn.onclick = startSlideshow;
+            els.slideSettingsBtn.onclick = () => els.slideSettingsDialog.classList.add('active');
+            els.closeSlideSettingsBtn.onclick = () => els.slideSettingsDialog.classList.remove('active');
+            els.slideSettingsDialog.onclick = (e) => { if (e.target === els.slideSettingsDialog) els.slideSettingsDialog.classList.remove('active'); };
+            document.querySelectorAll('input[name="slideOrder"]').forEach(r => r.onchange = (e) => slideshowState.mode = e.target.value);
+            els.slideIntervalSelect.onchange = (e) => {
+                slideshowState.interval = parseInt(e.target.value);
+                if (slideshowState.playing) { clearInterval(slideshowState.timer); slideshowState.timer = setInterval(nextSlide, slideshowState.interval); }
+            };
+
+            els.deleteTabBtn.onclick = async () => {
+                if (!currentState.activeTabId || !confirm(`リスト「${currentState.activeTabId}」を削除しますか？\n(中の画像も全て消えます)`)) return;
+                if (window.pywebview) {
+                    if (await pywebview.api.delete_list(currentState.activeTabId)) { currentState.activeTabId = null; loadFromPython(); }
+                }
+            };
+            els.openFolderBtn.onclick = () => { if (currentState.activeTabId && window.pywebview) pywebview.api.open_folder(currentState.activeTabId); };
+            els.refreshBtn.onclick = async () => { if (window.pywebview) await loadFromPython(); };
+
+            els.searchInput.oninput = (e) => {
+                currentState.search = e.target.value;
+                if (currentState.search) els.searchResetBtn.classList.remove('hidden'); else els.searchResetBtn.classList.add('hidden');
+                renderGrid();
+            };
+            els.searchResetBtn.onclick = () => { els.searchInput.value = ''; currentState.search = ''; els.searchResetBtn.classList.add('hidden'); renderGrid(); };
+            els.clearSearchBtn.onclick = els.searchResetBtn.onclick;
+
+            document.querySelectorAll('.header-age-item').forEach(btn => {
+                btn.onclick = () => {
+                    const val = btn.dataset.val;
+                    if (currentState.filterRatings.has(val)) currentState.filterRatings.delete(val); else currentState.filterRatings.add(val);
+                    updateHeaderAgeUI(); renderGrid();
+                };
+            });
+            document.querySelectorAll('.flag-filter-item').forEach(btn => {
+                btn.onclick = () => {
+                    const f = btn.dataset.flag;
+                    if (currentState.filterFlags.has(f)) currentState.filterFlags.delete(f); else currentState.filterFlags.add(f);
+                    updateHeaderFlagUI(); renderGrid();
+                };
+            });
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+                    currentState.sortMode = btn.dataset.sort; updateOrderIcon(); renderGrid();
+                };
+            });
+            els.orderBtn.onclick = () => { currentState.sortOrder = currentState.sortOrder === 'asc' ? 'desc' : 'asc'; updateOrderIcon(); renderGrid(); };
+            document.querySelectorAll('.mode-item').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.mode-item').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+                    currentState.editMode = (btn.dataset.mode === 'edit'); renderGrid();
+                };
+            });
+            document.querySelectorAll('.col-switch-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.col-switch-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+                    currentState.gridColumns = parseInt(btn.dataset.col); renderGrid();
+                };
+            });
+
+            els.closeViewer.onclick = () => { stopSlideshow(); els.viewer.classList.add('hidden'); };
+            els.viewer.onclick = (e) => { if (e.target === els.viewer || e.target === els.viewerMain) { stopSlideshow(); els.viewer.classList.add('hidden'); } };
+            els.prevBtn.onclick = (e) => { e.stopPropagation(); changeViewerImage(-1); };
+            els.nextBtn.onclick = (e) => { e.stopPropagation(); changeViewerImage(1); };
+            const vm = els.viewerMain;
+            vm.onmousedown = (e) => {
+                e.preventDefault(); viewerState.isDragging = true;
+                viewerState.startX = e.clientX - viewerState.panX; viewerState.startY = e.clientY - viewerState.panY;
+                els.viewerImg.style.cursor = 'grabbing';
+            };
+            window.onmouseup = () => { viewerState.isDragging = false; if (els.viewerImg) els.viewerImg.style.cursor = 'grab'; };
+            vm.onmousemove = (e) => {
+                if (!viewerState.isDragging) return; e.preventDefault();
+                viewerState.panX = e.clientX - viewerState.startX; viewerState.panY = e.clientY - viewerState.startY; updateZoom();
+            };
+            vm.onwheel = (e) => {
+                e.preventDefault();
+                viewerState.zoom = Math.min(Math.max(0.1, viewerState.zoom + e.deltaY * -0.001), 5.0);
+                updateZoom();
+            };
+            window.addEventListener('keydown', (e) => {
+                if (els.viewer.classList.contains('hidden')) return;
+                if (e.key === 'ArrowLeft') changeViewerImage(-1);
+                if (e.key === 'ArrowRight') changeViewerImage(1);
+                if (e.key === 'Escape') { stopSlideshow(); els.viewer.classList.add('hidden'); }
+            });
+            [els.searchBtn, els.clearSearchBtn, els.orderBtn, els.slideStartBtn, els.slideSettingsBtn, els.openFolderBtn, els.refreshBtn].forEach(btn => attachAnim(btn));
+        }
+
+        function openViewer(id) {
+            const item = currentState.images.find(i => i.id === id);
+            if (!item) return;
+            viewerState.activeId = id;
+            els.viewerImg.src = item.image;
+            els.viewerTitle.textContent = item.title;
+            els.viewerTags.innerHTML = '';
+            (item.tags || []).forEach(tag => {
+                const span = document.createElement('span'); span.className = 'viewer-tag'; span.textContent = tag; els.viewerTags.appendChild(span);
+            });
+            els.viewer.classList.remove('hidden');
+            els.viewerImg.onload = () => {
+                const vw = els.viewerMain.clientWidth; const vh = els.viewerMain.clientHeight;
+                const iw = els.viewerImg.naturalWidth; const ih = els.viewerImg.naturalHeight;
+                const scale = Math.min((vw * 0.9) / iw, (vh * 0.9) / ih);
+                viewerState.zoom = Math.min(scale, 1.0); viewerState.panX = 0; viewerState.panY = 0; updateZoom();
+            };
+        }
+        function changeViewerImage(dir) {
+            const list = viewerState.displayList;
+            let idx = list.indexOf(viewerState.activeId);
+            if (idx === -1) return;
+            idx = (idx + dir + list.length) % list.length;
+            openViewer(list[idx]);
+        }
+        function updateZoom() {
+            els.viewerImg.style.transform = `translate(${viewerState.panX}px, ${viewerState.panY}px) scale(${viewerState.zoom})`;
+            els.zoomInfo.textContent = Math.round(viewerState.zoom * 100) + '%';
+        }
+        async function showMetadataDialog(item) {
+            els.metaDialog.classList.add('active'); els.metaContent.value = "読み込み中...";
+            const appData = {
+                "--- APP DATA ---": "", id: item.id, title: item.title,
+                date: new Date(item.date).toLocaleString(), tags: item.tags || [],
+                rating: item.rating, caption: item.caption
+            };
+            let pngInfoStr = "";
+            if (window.pywebview) {
+                const rawInfo = await pywebview.api.get_png_info(currentState.activeTabId, item.id);
+                pngInfoStr = "\n\n--- PNG INFO ---\n" + rawInfo;
+            }
+            els.metaContent.value = JSON.stringify(appData, null, 4) + pngInfoStr;
+        }
+
+        function startSlideshow() {
+            if (viewerState.displayList.length === 0) { alert("画像がありません"); return; }
+            slideshowState.playing = true;
+            slideshowState.unshown = [...viewerState.displayList];
+            if (els.viewer.classList.contains('hidden')) {
+                if (slideshowState.mode === 'random') {
+                    const idx = Math.floor(Math.random() * slideshowState.unshown.length);
+                    const nextId = slideshowState.unshown[idx]; slideshowState.unshown.splice(idx, 1);
+                    openViewer(nextId);
+                } else {
+                    if (!viewerState.activeId) openViewer(viewerState.displayList[0]);
+                    else els.viewer.classList.remove('hidden');
+                }
+            } else {
+                if (slideshowState.mode === 'random' && viewerState.activeId) slideshowState.unshown = slideshowState.unshown.filter(id => id !== viewerState.activeId);
+            }
+            if (slideshowState.timer) clearInterval(slideshowState.timer);
+            slideshowState.timer = setInterval(nextSlide, slideshowState.interval);
+        }
+        function pauseSlideshow() { slideshowState.playing = false; if (slideshowState.timer) clearInterval(slideshowState.timer); slideshowState.timer = null; }
+        function stopSlideshow() { pauseSlideshow(); }
+        function nextSlide() {
+            if (els.viewer.classList.contains('hidden')) { stopSlideshow(); return; }
+            if (slideshowState.mode === 'random') {
+                if (!slideshowState.unshown || slideshowState.unshown.length === 0) slideshowState.unshown = [...viewerState.displayList];
+                const idx = Math.floor(Math.random() * slideshowState.unshown.length);
+                const nextId = slideshowState.unshown[idx]; slideshowState.unshown.splice(idx, 1);
+                openViewer(nextId);
+            } else { changeViewerImage(1); }
+        }
+
+        window.addEventListener('pywebviewready', init);
+        window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { if (!window.pywebview) init(); }, 100); });
+    </script>
+</body>
+
+</html>
