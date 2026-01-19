@@ -342,7 +342,6 @@ class Api:
             return False
 
 api = Api()
-html_path = os.path.join(BASE_DIR, 'index.html')
 
 window = webview.create_window(
     title='Plaviewer v1.0', 
@@ -351,4 +350,5 @@ window = webview.create_window(
     height=800, 
     js_api=api
 )
+
 webview.start(debug=False)
