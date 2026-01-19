@@ -2,21 +2,25 @@ import webview
 import os
 import base64
 import json
-import re
 import sys
 import shutil
 from PIL import Image
 
 IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
 
-# 1. 実行ファイルの場所(BASE_DIR)を特定
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 if getattr(sys, 'frozen', False):
     BASE_DIR = os.path.dirname(sys.executable)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 2. カレントディレクトリを強制的にBASE_DIRに移動
 os.chdir(BASE_DIR)
+
+html_path = resource_path('index.html')
 
 class Api:
     def __init__(self):
@@ -178,7 +182,6 @@ class Api:
             return False
 
     def save_metadata(self, folder_name, data_json):
-        # オートセーブ用: 頻繁に呼ばれても大丈夫なようにサイレントにする
         target_dir = os.path.join(self.base_dir, folder_name)
         metadata_path = os.path.join(target_dir, 'metadata.json')
 
@@ -342,7 +345,7 @@ api = Api()
 html_path = os.path.join(BASE_DIR, 'index.html')
 
 window = webview.create_window(
-    title='Plaviewer v1.0 (AutoSave)', 
+    title='Plaviewer v1.0', 
     url=html_path, 
     width=1200, 
     height=800, 

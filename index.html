@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plaviewer</title>
     <style>
-        /* --- 基本設定 --- */
         * {
             box-sizing: border-box;
         }
@@ -38,26 +37,44 @@
             position: relative;
         }
 
-        #dropOverlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(37, 99, 235, 0.3);
-            border: 4px dashed #60a5fa;
-            z-index: 9999;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            pointer-events: none;
+        .drag-active-area {
+            outline: 4px solid #60a5fa;
+            outline-offset: -4px;
+
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            transition: all 0.2s;
         }
 
-        #dropOverlay.active {
-            display: flex;
+        .drag-hint-area {
+            outline: 4px solid #60a5fa;
+            outline-offset: -4px;
+
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            transition: all 0.2s;
         }
 
-        /* --- ヘッダー --- */
+        .drag-active-area-main {
+            outline: 5px solid #22c55e;
+            outline-offset: -5px;
+
+            background-color: rgba(34, 197, 94, 0.2) !important;
+            transition: all 0.2s;
+        }
+
+        .drag-hint-area {
+            box-shadow: inset 0 0 0 4px #60a5fa;
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            transition: all 0.2s;
+        }
+
+        .tab-item.drag-over-tab {
+            background: #bae6fd !important;
+            border: 2px dashed #3b82f6 !important;
+            color: #0f172a !important;
+            transform: scale(1.02);
+        }
+
+
         .top-header-container {
             width: 100%;
             flex-shrink: 0;
@@ -143,7 +160,6 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
 
-        /* 色付きアクティブ状態 */
         .segment-item.active[data-val="all"] {
             background: #22c55e;
         }
@@ -205,11 +221,11 @@
         }
 
         .metallic-btn.trash {
-            background: linear-gradient(145deg, #7f1d1d, #450a0a);
-            color: #fca5a5;
+            background: linear-gradient(145deg, #ef4444, #b91c1c);
+            color: #ffffff;
+            border-color: #991b1b;
         }
 
-        /* オートセーブ用ステータス表示 */
         #autoSaveStatus {
             font-size: 11px;
             font-weight: bold;
@@ -225,7 +241,6 @@
             opacity: 1;
         }
 
-        /* --- ボディ --- */
         .app-body {
             display: flex;
             flex: 1;
@@ -396,7 +411,6 @@
             pointer-events: none;
         }
 
-        /* 削除済みスタイル */
         .metal-card.deleted {
             transform: scale(0.95);
             border-color: #fca5a5;
@@ -487,16 +501,13 @@
         .edit-label {
             font-size: 10px;
             font-weight: bold;
-            
-            /* ★変更: 黒文字に変更 */
+
             color: #000;
 
-            /* ★追加: 白フチ (入力欄と同じスタイル) */
-            text-shadow: 
+            text-shadow:
                 1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
                 0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
-            
-            /* 念のため少しマージンを調整して読みやすくします */
+
             margin-bottom: 2px;
             margin-left: 2px;
         }
@@ -511,12 +522,11 @@
 
             color: #000;
             font-weight: bold;
-            text-shadow: 
+            text-shadow:
                 1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
                 0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
         }
 
-        /* 4列・8列時の調整 */
         .grid-container.cols-4 .edit-col-left,
         .grid-container.cols-8 .edit-col-left {
             width: 100%;
@@ -673,7 +683,7 @@
             white-space: nowrap;
 
             color: #000;
-            text-shadow: 
+            text-shadow:
                 1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
                 0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
         }
@@ -701,7 +711,7 @@
             padding: 2px;
             color: #000;
             font-weight: bold;
-            text-shadow: 
+            text-shadow:
                 1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
                 0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
         }
@@ -714,14 +724,12 @@
             font-size: 12px;
             font-weight: bold;
             color: #000;
-            /* 文字色を真っ黒に */
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             margin-top: 0;
             padding: 0 4px;
 
-            /* ★追加: 白いフチ取り (上下左右に1pxずつ影を落としてフチに見せる) */
             text-shadow:
                 1px 1px 0 #fff,
                 -1px -1px 0 #fff,
@@ -735,45 +743,33 @@
 
         .view-control-row {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            margin-bottom: 4px;
             padding: 0 4px;
         }
 
         .view-btn-group {
             display: flex;
             gap: 2px;
+            width: 100%;
         }
 
         .view-date-text {
-            font-size: 12px;
-            font-weight: bold;
-            color: #444;
-            text-shadow: 1px 1px 0 #fff;
-            margin-left: auto;
-            white-space: nowrap;
-        }
-
-        .grid-container.cols-8 .view-control-row {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 2px;
-            margin-bottom: 4px;
-        }
-
-        .grid-container.cols-8 .view-btn-group {
-            width: 100%;
-        }
-
-        .grid-container.cols-8 .view-date-text {
-            width: 100%;
-            margin-left: 0;
-            text-align: left;
             font-size: 10px;
-            color: #555;
+            font-weight: bold;
+            color: #000;
+            text-shadow:
+                1px 1px 0 #fff, -1px -1px 0 #fff, -1px 1px 0 #fff, 1px -1px 0 #fff,
+                0px 1px 0 #fff, 0px -1px 0 #fff, -1px 0px 0 #fff, 1px 0px 0 #fff;
+
+            margin-left: 0;
+            white-space: nowrap;
+            width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-align: left;
         }
 
         .meta-info-btn {
@@ -920,7 +916,6 @@
 <body>
 
     <div id="app">
-        <div id="dropOverlay">＋ ドロップして追加</div>
 
         <div class="top-header-container">
             <div id="mainHeaderPanel" class="panel-content">
@@ -1120,16 +1115,19 @@
             gridColumns: 4,
             editMode: false,
             filterRatings: new Set(['all', '15', '18', '18g']),
-            filterFlags: new Set()
+            filterFlags: new Set(),
+            draggingInternal: false
         };
 
         let viewerState = { activeId: null, zoom: 1.0, panX: 0, panY: 0, isDragging: false, startX: 0, startY: 0, displayList: [] };
         let slideshowState = { playing: false, timer: null, interval: 3000, mode: 'seq', unshown: [] };
-        let saveTimer = null; // ★追加: オートセーブ用タイマー
+        let saveTimer = null;
 
         const els = {};
 
         function setupElements() {
+            els.sidebar = document.querySelector('aside.sidebar');
+            els.mainArea = document.querySelector('.main-grid-area');
             els.grid = document.getElementById('imageGrid');
             els.total = document.getElementById('totalCount');
             els.tabList = document.getElementById('tabList');
@@ -1169,7 +1167,6 @@
             setupElements();
             if (window.pywebview) await loadFromPython();
             else {
-                // ダミーデータ
                 const dummyImgs = [];
                 for (let i = 1; i <= 12; i++) dummyImgs.push({ id: 'img' + i, title: 'イラスト ' + i, image: null, rating: 'all', date: Date.now(), tags: [] });
                 currentState.tabs = [{ id: 'list1', name: 'List 1' }];
@@ -1204,8 +1201,6 @@
         }
         function fromLocalISOString(str) { return str ? new Date(str).getTime() : 0; }
 
-        // ★追加: オートセーブ機能 (デバウンス処理)
-        // delay: ミリ秒。0なら即時保存。
         function triggerAutoSave(delay = 1000) {
             els.autoSaveStatus.textContent = "保存中...";
             els.autoSaveStatus.classList.add('visible');
@@ -1214,7 +1209,6 @@
             saveTimer = setTimeout(async () => {
                 await performAutoSave();
                 els.autoSaveStatus.textContent = "保存完了";
-                // 2秒後に表示を消す
                 setTimeout(() => {
                     if (els.autoSaveStatus.textContent === "保存完了") {
                         els.autoSaveStatus.classList.remove('visible');
@@ -1224,18 +1218,16 @@
         }
 
         async function performAutoSave() {
-            // 削除フラグがついているものはPython側で削除、それ以外は保存
             const toDelete = currentState.images.filter(i => i._deleted).map(i => i.id);
             const toKeep = currentState.images.filter(i => !i._deleted);
 
             if (window.pywebview) {
                 if (toDelete.length > 0) {
                     await pywebview.api.delete_files(currentState.activeTabId, toDelete);
-                    currentState.images = toKeep; // メモリ上からも完全に消す
+                    currentState.images = toKeep;
                 }
                 await pywebview.api.save_metadata(currentState.activeTabId, currentState.images);
             }
-            // 削除されたものがあれば再描画が必要
             if (toDelete.length > 0) {
                 renderGrid();
                 renderTagCloud();
@@ -1258,8 +1250,8 @@
                     removeBtn.onclick = (e) => {
                         e.stopPropagation();
                         currentTags.splice(index, 1);
-                        item.tags = currentTags; // 直接更新
-                        triggerAutoSave(0); // 即保存
+                        item.tags = currentTags;
+                        triggerAutoSave(0);
                         updateDOM(true);
                         renderTagCloud();
                     };
@@ -1275,16 +1267,16 @@
                         const val = input.value.trim();
                         if (val && !currentTags.includes(val)) {
                             currentTags.push(val);
-                            item.tags = currentTags; // 直接更新
-                            triggerAutoSave(0); // 即保存
+                            item.tags = currentTags;
+                            triggerAutoSave(0);
                             updateDOM(true);
                             renderTagCloud();
                         } else { input.value = ''; }
                     }
                     if (e.key === 'Backspace' && input.value === '' && currentTags.length > 0) {
                         currentTags.pop();
-                        item.tags = currentTags; // 直接更新
-                        triggerAutoSave(0); // 即保存
+                        item.tags = currentTags;
+                        triggerAutoSave(0);
                         updateDOM(true);
                         renderTagCloud();
                     }
@@ -1324,37 +1316,95 @@
         }
 
         function setupDropEvents() {
-            const app = document.getElementById('app');
             let dragCounter = 0;
-            window.addEventListener('dragover', (e) => e.preventDefault());
+
+
             window.addEventListener('dragenter', (e) => {
-                if (!e.dataTransfer.types || Array.from(e.dataTransfer.types).indexOf('Files') === -1) return;
-                e.preventDefault(); dragCounter++; els.dropOverlay.classList.add('active');
+                if (!containsFiles(e) || currentState.draggingInternal) return;
+
+                dragCounter++;
+                els.sidebar.classList.add('drag-active-area');
+                els.mainArea.classList.add('drag-active-area-main');
             });
+
             window.addEventListener('dragleave', (e) => {
-                if (!e.dataTransfer.types || Array.from(e.dataTransfer.types).indexOf('Files') === -1) return;
-                e.preventDefault(); dragCounter--; if (dragCounter === 0) els.dropOverlay.classList.remove('active');
-            });
-            window.addEventListener('drop', async (e) => {
-                e.preventDefault();
-                if (!e.dataTransfer.types || Array.from(e.dataTransfer.types).indexOf('Files') === -1) return;
-                dragCounter = 0; els.dropOverlay.classList.remove('active');
-                if (!window.pywebview) return;
-                const items = e.dataTransfer.items;
-                if (!items) return;
-                for (let i = 0; i < items.length; i++) {
-                    const item = items[i].webkitGetAsEntry();
-                    if (item) {
-                        if (item.isFile) {
-                            if (!currentState.activeTabId) { alert("リストを選択してください"); continue; }
-                            await readFileAndUpload(item, currentState.activeTabId);
-                        } else if (item.isDirectory) {
-                            await readDirectoryAndUpload(item);
-                        }
-                    }
+                if (!containsFiles(e) || currentState.draggingInternal) return;
+
+                dragCounter--;
+                if (dragCounter === 0) {
+                    els.sidebar.classList.remove('drag-active-area');
+                    els.mainArea.classList.remove('drag-active-area-main');
                 }
-                if (window.pywebview) await loadFromPython();
             });
+
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+
+                if (currentState.draggingInternal) return;
+                if (!containsFiles(e)) return;
+
+                if (els.sidebar.contains(e.target) || els.mainArea.contains(e.target)) {
+                    e.dataTransfer.dropEffect = 'copy';
+                } else {
+                    e.dataTransfer.dropEffect = 'none';
+                }
+            });
+
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragCounter = 0;
+                els.sidebar.classList.remove('drag-active-area');
+                els.mainArea.classList.remove('drag-active-area-main');
+            });
+
+
+
+            els.sidebar.addEventListener('drop', async (e) => {
+                if (e.target.closest('.tab-item')) return;
+
+                if (containsFiles(e)) {
+                    const items = await getEntries(e.dataTransfer.items);
+                    const folderPromises = items.map(entry => {
+                        if (entry.isDirectory) return readDirectoryAndUpload(entry);
+                        return Promise.resolve();
+                    });
+                    await Promise.all(folderPromises);
+                    if (window.pywebview) await loadFromPython();
+                }
+            });
+
+            els.mainArea.addEventListener('drop', async (e) => {
+                if (e.dataTransfer.getData('application/x-pm-image-id')) return;
+
+                els.mainArea.classList.remove('drag-active-area-main');
+
+                if (!currentState.activeTabId) { alert("リストを選択してください"); return; }
+
+                if (containsFiles(e)) {
+                    const items = await getEntries(e.dataTransfer.items);
+                    const filePromises = items.map(entry => {
+                        if (entry.isFile) return readFileAndUpload(entry, currentState.activeTabId);
+                        return Promise.resolve();
+                    });
+                    await Promise.all(filePromises);
+                    if (window.pywebview) await loadFromPython();
+                }
+            });
+        }
+
+        function containsFiles(e) {
+            if (!e.dataTransfer.types) return false;
+            return e.dataTransfer.types.includes('Files');
+        }
+
+        async function getEntries(items) {
+            if (!items) return [];
+            const entries = [];
+            for (let i = 0; i < items.length; i++) {
+                const entry = items[i].webkitGetAsEntry();
+                if (entry) entries.push(entry);
+            }
+            return entries;
         }
 
         function readFileAndUpload(fileEntry, targetFolderId) {
@@ -1370,14 +1420,22 @@
                 });
             });
         }
+
         async function readDirectoryAndUpload(dirEntry) {
             const newFolderName = await pywebview.api.create_list_auto_rename(dirEntry.name);
             if (!newFolderName) return;
+
             const dirReader = dirEntry.createReader();
             const entries = await new Promise(resolve => dirReader.readEntries(r => resolve(r)));
-            for (let entry of entries) {
-                if (entry.isFile) await readFileAndUpload(entry, newFolderName);
-            }
+
+            const folderPromises = entries.map(entry => {
+                if (entry.isFile) {
+                    return readFileAndUpload(entry, newFolderName);
+                }
+                return Promise.resolve();
+            });
+
+            await Promise.all(folderPromises);
         }
 
         function renderTabList() {
@@ -1386,7 +1444,7 @@
                 const d = document.createElement('div');
                 d.className = `tab-item ${tab.id === currentState.activeTabId ? 'active' : ''}`;
                 d.textContent = tab.name;
-                d.draggable = true; // タブ自体の並び替え用
+                d.draggable = true;
 
                 d.ondblclick = async (e) => {
                     e.stopPropagation();
@@ -1449,6 +1507,18 @@
                         }
                         return;
                     }
+
+                    if (containsFiles(e)) {
+                        const items = await getEntries(e.dataTransfer.items);
+                        const filePromises = items.map(entry => {
+                            if (entry.isFile) return readFileAndUpload(entry, tab.id);
+                            return Promise.resolve();
+                        });
+                        await Promise.all(filePromises);
+                        if (window.pywebview) await loadFromPython();
+                        return;
+                    }
+
                     const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
                     if (isNaN(fromIndex)) return;
                     const toIndex = index;
@@ -1471,13 +1541,13 @@
             els.grid.className = `grid-container cols-${currentState.gridColumns} ${currentState.editMode ? 'edit-mode' : 'view-mode'}`;
 
             let filtered = currentState.images.filter(item => {
-                if (item._deleted) return false; // 削除フラグがあるものは表示しない
+                if (item._deleted) return false;
                 if (currentState.search) {
                     if (currentState.search.startsWith('#')) {
                         const tagQuery = currentState.search.substring(1).trim();
                         if (!item.tags.includes(tagQuery)) return false;
                     } else {
-                        const text = (item.title || '') + (item.tags || []).join(' ');
+                        const text = (item.title || '') + (item.tags || []).join(' ') + (item.caption || '');
                         if (!text.includes(currentState.search)) return false;
                     }
                 }
@@ -1511,11 +1581,9 @@
                 card.id = `card-${item.id}`;
                 card.className = `metal-card rating-${item.rating || 'all'}`;
 
-                // --- ★修正: ドラッグ処理の競合回避 ---
                 if (currentState.editMode) {
                     card.draggable = true;
                     card.onmousedown = (e) => {
-                        // 入力要素の上ではドラッグ無効化
                         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.closest('.tag-editor-container')) {
                             card.draggable = false;
                             e.stopPropagation();
@@ -1527,13 +1595,20 @@
                     card.onmouseleave = () => { card.draggable = true; };
 
                     card.ondragstart = (e) => {
+
+                        currentState.draggingInternal = true;
+                        els.sidebar.classList.add('drag-hint-area');
+
                         e.dataTransfer.effectAllowed = 'move';
                         e.dataTransfer.setData('application/x-pm-image-id', item.id);
                         setTimeout(() => card.classList.add('is-dragging-source'), 0);
                     };
-                    card.ondragend = () => card.classList.remove('is-dragging-source');
+                    card.ondragend = () => {
+                        currentState.draggingInternal = false;
+                        els.sidebar.classList.remove('drag-hint-area');
+                        card.classList.remove('is-dragging-source');
+                    };
 
-                    // タグ受け入れ
                     card.ondragenter = (e) => { if (document.body.classList.contains('is-dragging-tag')) card.classList.add('drag-target-hover'); };
                     card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
                     card.ondragleave = () => card.classList.remove('drag-target-hover');
@@ -1620,7 +1695,6 @@
                     row.appendChild(left); row.appendChild(right); card.appendChild(row);
 
                 } else {
-                    // --- Viewer Mode ---
                     const imgBox = document.createElement('div'); imgBox.className = 'card-img-box';
                     const img = document.createElement('img'); img.src = item.image;
                     imgBox.onclick = () => openViewer(item.id);
