@@ -343,6 +343,8 @@ class Api:
 
 api = Api()
 
+icon_path = resource_path('icon.ico')
+
 window = webview.create_window(
     title='Plaviewer v1.0', 
     url=html_path, 
