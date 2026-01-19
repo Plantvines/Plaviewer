@@ -3,8 +3,13 @@ import os
 import base64
 import json
 import sys
+import pathlib
 import shutil
 from PIL import Image
+import threading
+import http.server
+import socketserver
+import urllib.parse
 
 IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'}
 
@@ -147,12 +152,20 @@ class Api:
             files = os.listdir(target_dir)
             for filename in files:
                 name, ext = os.path.splitext(filename)
-                if ext.lower() in IMAGE_EXTS:
+                ext_lower = ext.lower()
+                if ext_lower in IMAGE_EXTS:
+                    full_image_path = os.path.join(target_dir, filename)
+                    
+                    encoded_folder = urllib.parse.quote(folder_name)
+                    encoded_file = urllib.parse.quote(filename)
+                    
+                    web_image_path = f"http://127.0.0.1:{SERVER_PORT}/list/{encoded_folder}/{encoded_file}"
+
                     item_data = {
                         "id": filename,
                         "title": name,
-                        "image": "", 
-                        "date": os.path.getmtime(os.path.join(target_dir, filename)) * 1000,
+                        "image": web_image_path,
+                        "date": os.path.getmtime(full_image_path) * 1000,
                         "tags": [],
                         "favorite": False,
                         "love": False,
@@ -340,6 +353,28 @@ class Api:
         except Exception as e:
             print(f"Move Error: {e}")
             return False
+SERVER_PORT = 0
+
+def start_server():
+    global SERVER_PORT
+    class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
+        def end_headers(self):
+            self.send_header('Access-Control-Allow-Origin', '*')
+            super().end_headers()
+        
+        def log_message(self, format, *args):
+            pass
+    handler = CORSRequestHandler
+    httpd = socketserver.TCPServer(("127.0.0.1", 0), handler)
+    SERVER_PORT = httpd.server_address[1]
+    
+    print(f"★ ローカル画像サーバー起動: port={SERVER_PORT}")
+    
+    thread = threading.Thread(target=httpd.serve_forever)
+    thread.daemon = True
+    thread.start()
+
+start_server()
 
 api = Api()
 
