@@ -37,44 +37,6 @@
             position: relative;
         }
 
-        .drag-active-area {
-            outline: 4px solid #60a5fa;
-            outline-offset: -4px;
-
-            background-color: rgba(59, 130, 246, 0.1) !important;
-            transition: all 0.2s;
-        }
-
-        .drag-hint-area {
-            outline: 4px solid #60a5fa;
-            outline-offset: -4px;
-
-            background-color: rgba(59, 130, 246, 0.1) !important;
-            transition: all 0.2s;
-        }
-
-        .drag-active-area-main {
-            outline: 5px solid #22c55e;
-            outline-offset: -5px;
-
-            background-color: rgba(34, 197, 94, 0.2) !important;
-            transition: all 0.2s;
-        }
-
-        .drag-hint-area {
-            box-shadow: inset 0 0 0 4px #60a5fa;
-            background-color: rgba(59, 130, 246, 0.1) !important;
-            transition: all 0.2s;
-        }
-
-        .tab-item.drag-over-tab {
-            background: #bae6fd !important;
-            border: 2px dashed #3b82f6 !important;
-            color: #0f172a !important;
-            transform: scale(1.02);
-        }
-
-
         .top-header-container {
             width: 100%;
             flex-shrink: 0;
@@ -242,10 +204,14 @@
         }
 
         .app-body {
+            position: relative;
+            /* 膜を閉じ込めるために必要 */
             display: flex;
+            /* ★復活させる：これがないと横並びになりません */
             flex: 1;
+            /* ★復活させる：これがないと縦幅いっぱいに広がりません */
             overflow: hidden;
-            width: 100%;
+            /* ★復活させる：スクロールバーの制御に必要 */
         }
 
         aside.sidebar {
@@ -267,6 +233,16 @@
             user-select: none;
         }
 
+        .tab-item.drag-target-active {
+            outline: 2px solid #fbbf24;
+            /* borderの代わりにoutlineを使う */
+            outline-offset: -2px;
+            /* 内側に線を描画 */
+            background-color: rgba(236, 215, 161, 0.1) !important;
+            color: #fbbf24 !important;
+            font-weight: bold;
+        }
+
         .tab-item:hover {
             background: rgba(255, 255, 255, 0.05);
             color: #e2e8f0;
@@ -279,10 +255,26 @@
             font-weight: bold;
         }
 
+        /* --- ★再修正：ドラッグ先を「水色」にする --- */
         .tab-item.drag-target-active {
-            background: #bae6fd !important;
-            color: #0f172a !important;
-            border: 2px dashed #3b82f6;
+            background: rgba(56, 189, 248, 0.15) !important;
+            /* 背景を薄い水色に */
+            border-left-color: #38bdf8 !important;
+            /* 左の線を鮮やかな水色に */
+            color: #38bdf8 !important;
+            /* 文字色も水色に */
+            font-weight: bold;
+            outline: none !important;
+        }
+
+        /* --- ★修正：リスト並び替え用のプレースホルダー --- */
+        .tab-placeholder {
+            height: 40px; /* リスト項目の高さに合わせる */
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed #94a3b8;
+            border-radius: 4px;
+            margin: 2px 0;
+            pointer-events: none; /* マウスイベントを邪魔しない */
         }
 
         .tab-item.dragging-tab {
@@ -399,8 +391,9 @@
             border: 2px dashed #999;
         }
 
+        /* --- ★修正：タグを乗せた時に「縮む」スタイルに変更 --- */
         .metal-card.drag-target-hover {
-            transform: scale(1.05);
+            transform: scale(0.95); /* 1.05 から 0.95 に変更 */
             border-color: #3b82f6 !important;
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
             z-index: 100;
@@ -910,6 +903,82 @@
         .click-anim {
             animation: btn-shrink 0.15s ease-in-out;
         }
+
+        #dropOverlay {
+            position: absolute;
+            /* 親(app-body)を基準にする */
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.3);
+            /* 背景を少し暗く */
+            display: none;
+            /* 横並びレイアウト */
+            display: none;
+            flex-direction: row;
+            align-items: stretch;
+            /* 高さをいっぱいに */
+        }
+
+        #dropOverlay.active {
+            display: flex;
+            /* ドラッグ中だけ表示 */
+        }
+
+        .drop-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px dashed rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: bold;
+            font-size: 24px;
+            transition: background 0.2s, border-color 0.2s;
+            /* サイズ変更アニメーションを削除 */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+        }
+
+        /* サイドバー用ゾーン（左: 200px） */
+        #dropZoneSidebar {
+            width: 200px;
+            flex-shrink: 0;
+            background: rgba(15, 23, 42, 0.6);
+            /* 通常時の色 */
+            border-right: none;
+            /* 隣と接する部分の線を消す */
+        }
+
+        #dropZoneSidebar.drag-over {
+            background: rgba(59, 130, 246, 0.6);
+            /* ★強調色（薄い青） */
+            border-color: #fff;
+        }
+
+        /* メインエリア用ゾーン（中央: 残り全部 - 右サイドバー分） */
+        #dropZoneMain {
+            flex: 1;
+            margin-right: 200px;
+            /* 右側のタグクラウド(200px)には被せない */
+            background: rgba(15, 56, 38, 0.6);
+            /* 通常時の色 */
+        }
+
+        #dropZoneMain.drag-over {
+            background: rgba(34, 197, 94, 0.6);
+            /* ★強調色（薄い緑） */
+            border-color: #fff;
+        }
+
+        #dropZoneMain.drag-invalid {
+            background: rgba(220, 38, 38, 0.6);
+            /* 禁止時の色 */
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -1119,9 +1188,13 @@
             draggingInternal: false
         };
 
+        let allowedExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']);
+
         let viewerState = { activeId: null, zoom: 1.0, panX: 0, panY: 0, isDragging: false, startX: 0, startY: 0, displayList: [] };
         let slideshowState = { playing: false, timer: null, interval: 3000, mode: 'seq', unshown: [] };
         let saveTimer = null;
+
+        let dragPlaceholder = null;
 
         const els = {};
 
@@ -1161,6 +1234,10 @@
             els.slideIntervalSelect = document.getElementById('slideIntervalSelect');
             els.openFolderBtn = document.getElementById('openFolderBtn');
             els.refreshBtn = document.getElementById('refreshBtn');
+            els.dropOverlay = document.getElementById('dropOverlay');
+            els.dropZoneSidebar = document.getElementById('dropZoneSidebar');
+            els.dropZoneMain = document.getElementById('dropZoneMain');
+            document.querySelector('.app-body').appendChild(els.dropOverlay);
         }
 
         async function init() {
@@ -1236,7 +1313,7 @@
 
         function saveConfig() {
             if (!window.pywebview) return;
-            
+
             const config = {
                 filterRatings: Array.from(currentState.filterRatings),
                 filterFlags: Array.from(currentState.filterFlags),
@@ -1246,7 +1323,7 @@
                 sortMode: currentState.sortMode,
                 sortOrder: currentState.sortOrder
             };
-            
+
             pywebview.api.save_app_config(config);
         }
 
@@ -1306,6 +1383,10 @@
 
         async function loadFromPython() {
             try {
+                const constants = await pywebview.api.get_constants();
+                if (constants && constants.IMAGE_EXTS) {
+                    allowedExtensions = new Set(constants.IMAGE_EXTS);
+                }
                 const config = await pywebview.api.load_app_config();
                 if (config) {
                     if (config.filterRatings) currentState.filterRatings = new Set(config.filterRatings);
@@ -1331,11 +1412,11 @@
                         if (btn.dataset.sort === currentState.sortMode) btn.classList.add('active');
                         else btn.classList.remove('active');
                     });
-                    
+
                     updateOrderIcon();
                     updateHeaderAgeUI();
                     updateHeaderFlagUI();
-                    
+
                     const radio = document.querySelector(`input[name="slideOrder"][value="${slideshowState.mode}"]`);
                     if (radio) radio.checked = true;
                     if (els.slideIntervalSelect) els.slideIntervalSelect.value = slideshowState.interval;
@@ -1362,56 +1443,76 @@
             } catch (e) { console.error(e); }
         }
 
-        function setupDropEvents() {
-            let dragCounter = 0;
+        // ★ヘルパー：ファイル名から拡張子がOKか判定
+        function isAllowedFile(filename) {
+            if (!filename) return false;
+            const dotIndex = filename.lastIndexOf('.');
+            if (dotIndex === -1) return false;
+            const ext = filename.substring(dotIndex).toLowerCase();
+            return allowedExtensions.has(ext);
+        }
 
-
-            window.addEventListener('dragenter', (e) => {
-                if (!containsFiles(e) || currentState.draggingInternal) return;
-
-                dragCounter++;
-                els.sidebar.classList.add('drag-active-area');
-                els.mainArea.classList.add('drag-active-area-main');
-            });
-
-            window.addEventListener('dragleave', (e) => {
-                if (!containsFiles(e) || currentState.draggingInternal) return;
-
-                dragCounter--;
-                if (dragCounter === 0) {
-                    els.sidebar.classList.remove('drag-active-area');
-                    els.mainArea.classList.remove('drag-active-area-main');
+        // ★ヘルパー：ドラッグ中のアイテムが「画像っぽい」か判定
+        function seemsLikeImage(e) {
+            if (!e.dataTransfer.items) return false;
+            for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                const item = e.dataTransfer.items[i];
+                // "image/..." ならOK。typeが空文字の場合も念のため通す
+                if (item.kind === 'file' && (item.type.startsWith('image/') || item.type === '')) {
+                    return true;
                 }
-            });
+            }
+            return false;
+        }
 
-            window.addEventListener('dragover', (e) => {
-                e.preventDefault();
-
+        function setupDropEvents() {
+            // 1. 【Window監視】外部からファイルが来たら「膜」を出現させる
+            window.addEventListener('dragenter', (e) => {
+                // 内部ドラッグ中は膜を出さない
                 if (currentState.draggingInternal) return;
+                // ファイルを含まないドラッグなら無視
                 if (!containsFiles(e)) return;
 
-                if (els.sidebar.contains(e.target) || els.mainArea.contains(e.target)) {
-                    e.dataTransfer.dropEffect = 'copy';
-                } else {
-                    e.dataTransfer.dropEffect = 'none';
+                // 膜を表示！
+                els.dropOverlay.classList.add('active');
+            });
+
+            // 2. 【膜の制御】マウスがウィンドウの外に出たら膜を消す
+            els.dropOverlay.addEventListener('dragleave', (e) => {
+                // "relatedTarget" が null の時は、マウスがブラウザの外に出たことを意味します
+                if (e.relatedTarget === null) {
+                    els.dropOverlay.classList.remove('active');
+                    resetZones();
                 }
             });
 
+            // 膜の上でのドラッグオーバー（ブラウザの誤作動防止）
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
             window.addEventListener('drop', (e) => {
                 e.preventDefault();
-                dragCounter = 0;
-                els.sidebar.classList.remove('drag-active-area');
-                els.mainArea.classList.remove('drag-active-area-main');
+                // 万が一膜の隙間に落ちても、ここで膜を消してガード
+                els.dropOverlay.classList.remove('active');
             });
 
-
-
-            els.sidebar.addEventListener('drop', async (e) => {
-                if (e.target.closest('.tab-item')) return;
+            // 3. 【サイドバーゾーン】フォルダドロップ用
+            els.dropZoneSidebar.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                els.dropZoneSidebar.classList.add('drag-over');
+            });
+            els.dropZoneSidebar.addEventListener('dragleave', () => {
+                els.dropZoneSidebar.classList.remove('drag-over');
+            });
+            els.dropZoneSidebar.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                closeOverlay(); // ドロップされたら即座に膜を閉じる
 
                 if (containsFiles(e)) {
                     const items = await getEntries(e.dataTransfer.items);
                     const folderPromises = items.map(entry => {
+                        // サイドバーはフォルダのみ受け付け（またはフォルダとして処理）
                         if (entry.isDirectory) return readDirectoryAndUpload(entry);
                         return Promise.resolve();
                     });
@@ -1420,23 +1521,55 @@
                 }
             });
 
-            els.mainArea.addEventListener('drop', async (e) => {
-                if (e.dataTransfer.getData('application/x-pm-image-id')) return;
+            // 4. 【メインエリアゾーン】画像ドロップ用
+            els.dropZoneMain.addEventListener('dragover', (e) => {
+                e.preventDefault();
 
-                els.mainArea.classList.remove('drag-active-area-main');
+                // 画像ファイルなら緑に、それ以外なら赤に
+                if (seemsLikeImage(e)) {
+                    e.dataTransfer.dropEffect = 'copy';
+                    els.dropZoneMain.classList.add('drag-over');
+                    els.dropZoneMain.classList.remove('drag-invalid');
+                } else {
+                    e.dataTransfer.dropEffect = 'none';
+                    els.dropZoneMain.classList.remove('drag-over');
+                    els.dropZoneMain.classList.add('drag-invalid');
+                }
+            });
+            els.dropZoneMain.addEventListener('dragleave', () => {
+                els.dropZoneMain.classList.remove('drag-over');
+                els.dropZoneMain.classList.remove('drag-invalid');
+            });
+            els.dropZoneMain.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                closeOverlay();
 
                 if (!currentState.activeTabId) { alert("リストを選択してください"); return; }
 
                 if (containsFiles(e)) {
                     const items = await getEntries(e.dataTransfer.items);
                     const filePromises = items.map(entry => {
-                        if (entry.isFile) return readFileAndUpload(entry, currentState.activeTabId);
+                        // ファイルかつ、許可された拡張子のみ
+                        if (entry.isFile && isAllowedFile(entry.name)) {
+                            return readFileAndUpload(entry, currentState.activeTabId);
+                        }
                         return Promise.resolve();
                     });
                     await Promise.all(filePromises);
                     if (window.pywebview) await loadFromPython();
                 }
             });
+
+            function closeOverlay() {
+                els.dropOverlay.classList.remove('active');
+                resetZones();
+            }
+
+            function resetZones() {
+                els.dropZoneSidebar.classList.remove('drag-over');
+                els.dropZoneMain.classList.remove('drag-over');
+                els.dropZoneMain.classList.remove('drag-invalid');
+            }
         }
 
         function containsFiles(e) {
@@ -1487,12 +1620,119 @@
 
         function renderTabList() {
             els.tabList.innerHTML = '';
+            
             currentState.tabs.forEach((tab, index) => {
                 const d = document.createElement('div');
                 d.className = `tab-item ${tab.id === currentState.activeTabId ? 'active' : ''}`;
                 d.textContent = tab.name;
                 d.draggable = true;
 
+                // --- 1. ドラッグ開始 (Start) ---
+                d.ondragstart = (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', index);
+                    d.classList.add('dragging-tab');
+
+                    // プレースホルダーを作成
+                    dragPlaceholder = document.createElement('div');
+                    dragPlaceholder.className = 'tab-placeholder';
+                    dragPlaceholder.style.height = d.offsetHeight + 'px';
+
+                    setTimeout(() => {
+                        d.style.display = 'none';
+                        els.tabList.insertBefore(dragPlaceholder, d);
+                    }, 0);
+                };
+
+                // --- 2. ドラッグ終了 (End) ---
+                d.ondragend = async () => {
+                    d.classList.remove('dragging-tab');
+                    d.style.display = 'block';
+
+                    if (dragPlaceholder && dragPlaceholder.parentNode) {
+                        const allItems = Array.from(els.tabList.children);
+                        const newIndex = allItems.indexOf(dragPlaceholder);
+                        
+                        dragPlaceholder.remove();
+                        dragPlaceholder = null;
+
+                        if (newIndex !== -1 && newIndex !== index) {
+                            const movedItem = currentState.tabs[index];
+                            currentState.tabs.splice(index, 1);
+                            
+                            let insertIndex = newIndex;
+                            if (index < newIndex) insertIndex--;
+
+                            currentState.tabs.splice(insertIndex, 0, movedItem);
+                            
+                            if (window.pywebview) {
+                                const orderList = currentState.tabs.map(t => t.id);
+                                await pywebview.api.save_list_order(orderList);
+                            }
+                        }
+                    }
+                    renderTabList();
+                };
+
+                // --- 3. ドラッグ中 (Over) ---
+                d.ondragover = (e) => {
+                    e.preventDefault();
+
+                    // A. リスト並び替え
+                    if (document.querySelector('.dragging-tab')) {
+                        e.dataTransfer.dropEffect = 'move';
+                        if (d === dragPlaceholder) return;
+                        
+                        const rect = d.getBoundingClientRect();
+                        const next = (e.clientY - rect.top) > (rect.height / 2);
+                        
+                        if (next) els.tabList.insertBefore(dragPlaceholder, d.nextSibling);
+                        else els.tabList.insertBefore(dragPlaceholder, d);
+                        return;
+                    }
+
+                    // B. カード移動受け入れ
+                    if (e.dataTransfer.types.includes('application/x-pm-image-id')) {
+                         if (tab.id !== currentState.activeTabId) {
+                            document.querySelectorAll('.tab-item.drag-target-active').forEach(i => {
+                                if(i !== d) i.classList.remove('drag-target-active');
+                            });
+                            d.classList.add('drag-target-active');
+                            e.dataTransfer.dropEffect = 'move';
+                        } else {
+                            e.dataTransfer.dropEffect = 'none';
+                        }
+                        return;
+                    }
+                    e.dataTransfer.dropEffect = 'none';
+                };
+
+                // --- 4. その他のイベント ---
+                d.ondragleave = () => {
+                     d.classList.remove('drag-target-active');
+                };
+
+                d.ondrop = async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    d.classList.remove('drag-target-active');
+
+                    // カード移動実行
+                    const imageId = e.dataTransfer.getData('application/x-pm-image-id');
+                    if (imageId) {
+                        if (tab.id === currentState.activeTabId) return;
+                        if (window.pywebview) {
+                            const success = await pywebview.api.move_image(currentState.activeTabId, imageId, tab.id);
+                            if (success) {
+                                currentState.images = currentState.images.filter(i => i.id !== imageId);
+                                renderGrid(); renderTagCloud();
+                            }
+                        }
+                        return;
+                    }
+                };
+
+                // ★復活：ダブルクリックでリネーム
                 d.ondblclick = async (e) => {
                     e.stopPropagation();
                     const newName = prompt("リスト名を変更:", tab.name);
@@ -1506,6 +1746,8 @@
                         }
                     }
                 };
+                
+                // ★復活：クリックで選択
                 d.onclick = () => {
                     if (currentState.activeTabId === tab.id) return;
                     currentState.activeTabId = tab.id;
@@ -1515,70 +1757,6 @@
                     else renderTabList();
                 };
 
-                d.ondragstart = (e) => {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', index);
-                    d.classList.add('dragging-tab');
-                };
-                d.ondragend = () => {
-                    d.classList.remove('dragging-tab');
-                    document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('drag-over-tab'));
-                };
-                d.ondragover = (e) => {
-                    e.preventDefault();
-                    if (e.dataTransfer.types.includes('application/x-pm-image-id')) {
-                        if (tab.id !== currentState.activeTabId) d.classList.add('drag-target-active');
-                        e.dataTransfer.dropEffect = 'move';
-                    } else {
-                        d.classList.add('drag-over-tab');
-                    }
-                };
-                d.ondragleave = () => {
-                    d.classList.remove('drag-target-active');
-                    d.classList.remove('drag-over-tab');
-                };
-                d.ondrop = async (e) => {
-                    e.preventDefault();
-                    d.classList.remove('drag-target-active');
-                    d.classList.remove('drag-over-tab');
-
-                    const imageId = e.dataTransfer.getData('application/x-pm-image-id');
-                    if (imageId) {
-                        if (tab.id === currentState.activeTabId) return;
-                        if (window.pywebview) {
-                            const success = await pywebview.api.move_image(currentState.activeTabId, imageId, tab.id);
-                            if (success) {
-                                currentState.images = currentState.images.filter(i => i.id !== imageId);
-                                renderGrid(); renderTagCloud();
-                            }
-                        }
-                        return;
-                    }
-
-                    if (containsFiles(e)) {
-                        const items = await getEntries(e.dataTransfer.items);
-                        const filePromises = items.map(entry => {
-                            if (entry.isFile) return readFileAndUpload(entry, tab.id);
-                            return Promise.resolve();
-                        });
-                        await Promise.all(filePromises);
-                        if (window.pywebview) await loadFromPython();
-                        return;
-                    }
-
-                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                    if (isNaN(fromIndex)) return;
-                    const toIndex = index;
-                    if (fromIndex === toIndex) return;
-                    const movedItem = currentState.tabs[fromIndex];
-                    currentState.tabs.splice(fromIndex, 1);
-                    currentState.tabs.splice(toIndex, 0, movedItem);
-                    renderTabList();
-                    if (window.pywebview) {
-                        const orderList = currentState.tabs.map(t => t.id);
-                        await pywebview.api.save_list_order(orderList);
-                    }
-                };
                 els.tabList.appendChild(d);
             });
         }
@@ -1587,6 +1765,7 @@
             els.grid.innerHTML = '';
             els.grid.className = `grid-container cols-${currentState.gridColumns} ${currentState.editMode ? 'edit-mode' : 'view-mode'}`;
 
+            // ...（フィルタリング・ソート処理は変更なし、そのまま残してください）...
             let filtered = currentState.images.filter(item => {
                 if (item._deleted) return false;
                 if (currentState.search) {
@@ -1607,6 +1786,7 @@
                 return true;
             });
 
+            // ...（ソート処理もそのまま）...
             filtered.sort((a, b) => {
                 const va = currentState.sortMode === 'date' ? (a.date || 0) : (a.title || '');
                 const vb = currentState.sortMode === 'date' ? (b.date || 0) : (b.title || '');
@@ -1630,59 +1810,73 @@
 
                 if (currentState.editMode) {
                     card.draggable = true;
+                    // 入力欄でのドラッグ防止処理
                     card.onmousedown = (e) => {
                         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.closest('.tag-editor-container')) {
-                            card.draggable = false;
-                            e.stopPropagation();
-                        } else {
-                            card.draggable = true;
-                        }
+                            card.draggable = false; e.stopPropagation();
+                        } else { card.draggable = true; }
                     };
                     card.onmouseup = () => { card.draggable = true; };
                     card.onmouseleave = () => { card.draggable = true; };
 
+                    // ★変更点：ここから強調表示（hint-areaなど）の操作を削除
                     card.ondragstart = (e) => {
-
                         currentState.draggingInternal = true;
-                        els.sidebar.classList.add('drag-hint-area');
-
+                        // els.sidebar.classList.add('drag-hint-area'); ←削除
                         e.dataTransfer.effectAllowed = 'move';
                         e.dataTransfer.setData('application/x-pm-image-id', item.id);
                         setTimeout(() => card.classList.add('is-dragging-source'), 0);
                     };
                     card.ondragend = () => {
                         currentState.draggingInternal = false;
-                        els.sidebar.classList.remove('drag-hint-area');
+                        // els.sidebar.classList.remove('drag-hint-area'); ←削除
                         card.classList.remove('is-dragging-source');
+                        document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('drag-target-active'));
                     };
 
-                    card.ondragenter = (e) => { if (document.body.classList.contains('is-dragging-tag')) card.classList.add('drag-target-hover'); };
-                    card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
-                    card.ondragleave = () => card.classList.remove('drag-target-hover');
+                    // ★復活：カード上での強調表示（タグを持っている時だけ）
+                    card.ondragenter = (e) => {
+                        // タグをドラッグ中ならクラスを追加
+                        if (document.body.classList.contains('is-dragging-tag')) {
+                            card.classList.add('drag-target-hover');
+                        }
+                    };
+
+                    card.ondragover = (e) => { 
+                        e.preventDefault(); 
+                        if (document.body.classList.contains('is-dragging-tag')) {
+                            e.dataTransfer.dropEffect = 'copy';
+                        }
+                    };
+
+                    card.ondragleave = () => {
+                         card.classList.remove('drag-target-hover');
+                    };
+
                     card.ondrop = (e) => {
                         e.preventDefault();
-                        card.classList.remove('drag-target-hover');
+                        card.classList.remove('drag-target-hover'); // ドロップしたら戻す
+                        
                         const tagText = e.dataTransfer.getData('text/plain');
                         if (tagText) addTagToItem(item.id, tagText);
                     };
                 }
 
+                // ...（以下、カードの中身を作る処理は変更なし。長いので省略しますが、元のコードを維持してください）...
                 if (currentState.editMode) {
                     card.style.padding = '10px';
+                    // ...（編集モードの中身生成コード）...
+                    // ※ここには変更点はありません。今まで通りのコードでOKです。
+                    // （省略せずに元のコードを使ってください）
+
+                    // 念のため必要な部分だけ再掲（変更なし）：
                     const row = document.createElement('div'); row.className = 'edit-layout-row';
                     const left = document.createElement('div'); left.className = 'edit-col-left';
                     const imgBox = document.createElement('div'); imgBox.className = 'card-img-box'; imgBox.style.borderRadius = '4px';
-
-                    imgBox.oncontextmenu = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showMetadataDialog(item);
-                    };
-
+                    imgBox.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showMetadataDialog(item); };
                     const img = document.createElement('img'); img.src = item.image; img.draggable = false;
                     imgBox.onclick = () => openViewer(item.id);
                     imgBox.appendChild(img);
-
                     const ageSlider = document.createElement('div'); ageSlider.className = 'age-slider-container';
                     ['all', '15', '18', '18g'].forEach(k => {
                         const opt = document.createElement('div'); opt.className = `age-option ${item.rating === k ? 'active' : ''}`;
@@ -1690,7 +1884,6 @@
                         opt.onclick = () => { item.rating = k; triggerAutoSave(0); renderGrid(); };
                         ageSlider.appendChild(opt);
                     });
-
                     const btnRow = document.createElement('div'); btnRow.style.display = 'flex'; btnRow.style.gap = '4px';
                     const makeToggle = (label, key, col) => {
                         const b = document.createElement('button'); b.className = 'metallic-btn'; b.style.flex = '1'; b.textContent = label;
@@ -1702,96 +1895,39 @@
                     btnRow.appendChild(makeToggle('♥', 'love', '#ec4899'));
                     btnRow.appendChild(makeToggle('⚑', 'bookmark', '#3b82f6'));
                     btnRow.appendChild(makeToggle('✔', 'check', '#22c55e'));
-
                     left.appendChild(imgBox); left.appendChild(ageSlider); left.appendChild(btnRow);
-
                     const right = document.createElement('div'); right.className = 'edit-col-right';
-
-                    const titleRow = document.createElement('div');
-                    titleRow.style.display = 'flex';
-                    titleRow.style.justifyContent = 'space-between';
-                    titleRow.style.alignItems = 'center';
-
-                    const titleLeft = document.createElement('div');
-                    titleLeft.style.display = 'flex';
-                    titleLeft.style.alignItems = 'center';
-                    titleLeft.style.gap = '8px';
-
-                    const tLabel = document.createElement('label');
-                    tLabel.className = 'edit-label';
-                    tLabel.textContent = 'タイトル';
-                    tLabel.style.marginBottom = '0';
-
-                    const iBtn = document.createElement('button');
-                    iBtn.className = 'metallic-btn';
-                    iBtn.textContent = 'i';
-                    iBtn.title = 'メタデータ表示';
-                    iBtn.style.fontSize = '12px';
-                    iBtn.style.padding = '0 8px';
-                    iBtn.style.height = '20px';
-                    iBtn.style.fontWeight = 'bold';
-                    iBtn.style.color = '#60a5fa';
+                    const titleRow = document.createElement('div'); titleRow.style.display = 'flex'; titleRow.style.justifyContent = 'space-between'; titleRow.style.alignItems = 'center';
+                    const titleLeft = document.createElement('div'); titleLeft.style.display = 'flex'; titleLeft.style.alignItems = 'center'; titleLeft.style.gap = '8px';
+                    const tLabel = document.createElement('label'); tLabel.className = 'edit-label'; tLabel.textContent = 'タイトル'; tLabel.style.marginBottom = '0';
+                    const iBtn = document.createElement('button'); iBtn.className = 'metallic-btn'; iBtn.textContent = 'i'; iBtn.title = 'メタデータ表示'; iBtn.style.fontSize = '12px'; iBtn.style.padding = '0 8px'; iBtn.style.height = '20px'; iBtn.style.fontWeight = 'bold'; iBtn.style.color = '#60a5fa';
                     iBtn.onclick = () => showMetadataDialog(item);
-
-                    titleLeft.appendChild(tLabel);
-                    titleLeft.appendChild(iBtn);
-
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'metallic-btn trash';
-                    delBtn.style.fontSize = '12px';
-                    delBtn.style.padding = '0 8px';
-                    delBtn.style.height = '20px';
-                    delBtn.textContent = '🗑';
-                    delBtn.title = '削除';
-                    delBtn.onclick = () => {
-                        if (confirm('削除しますか？')) {
-                            item._deleted = true; triggerAutoSave(0);
-                        }
-                    };
-
-                    titleRow.appendChild(titleLeft);
-                    titleRow.appendChild(delBtn);
-                    right.appendChild(titleRow);
-
-                    const tInput = document.createElement('input'); tInput.className = 'card-input-area';
-                    tInput.value = item.title || '';
-                    tInput.oninput = (e) => { item.title = e.target.value; triggerAutoSave(1000); };
+                    titleLeft.appendChild(tLabel); titleLeft.appendChild(iBtn);
+                    const delBtn = document.createElement('button'); delBtn.className = 'metallic-btn trash'; delBtn.style.fontSize = '12px'; delBtn.style.padding = '0 8px'; delBtn.style.height = '20px'; delBtn.textContent = '🗑'; delBtn.title = '削除';
+                    delBtn.onclick = () => { if (confirm('削除しますか？')) { item._deleted = true; triggerAutoSave(0); } };
+                    titleRow.appendChild(titleLeft); titleRow.appendChild(delBtn); right.appendChild(titleRow);
+                    const tInput = document.createElement('input'); tInput.className = 'card-input-area'; tInput.value = item.title || ''; tInput.oninput = (e) => { item.title = e.target.value; triggerAutoSave(1000); };
                     right.appendChild(tInput);
-
                     const dateLabel = document.createElement('label'); dateLabel.className = 'edit-label'; dateLabel.textContent = '日付';
-                    const dateInput = document.createElement('input'); dateInput.type = 'datetime-local'; dateInput.className = 'card-input-area';
-                    dateInput.value = toLocalISOString(item.date);
-                    dateInput.oninput = (e) => { item.date = fromLocalISOString(e.target.value); triggerAutoSave(1000); };
+                    const dateInput = document.createElement('input'); dateInput.type = 'datetime-local'; dateInput.className = 'card-input-area'; dateInput.value = toLocalISOString(item.date); dateInput.oninput = (e) => { item.date = fromLocalISOString(e.target.value); triggerAutoSave(1000); };
                     right.appendChild(dateLabel); right.appendChild(dateInput);
-
                     const tagLabel = document.createElement('label'); tagLabel.className = 'edit-label'; tagLabel.textContent = 'タグ';
                     right.appendChild(tagLabel); right.appendChild(createTagEditor(item, item.tags || []));
-
                     const capLbl = document.createElement('label'); capLbl.className = 'edit-label'; capLbl.textContent = 'メモ';
-                    const capTxt = document.createElement('textarea'); capTxt.className = 'card-input-area';
-                    capTxt.style.flex = '1'; capTxt.style.resize = 'none'; capTxt.value = item.caption || '';
-                    capTxt.oninput = (e) => { item.caption = e.target.value; triggerAutoSave(1000); };
+                    const capTxt = document.createElement('textarea'); capTxt.className = 'card-input-area'; capTxt.style.flex = '1'; capTxt.style.resize = 'none'; capTxt.value = item.caption || ''; capTxt.oninput = (e) => { item.caption = e.target.value; triggerAutoSave(1000); };
                     right.appendChild(capLbl); right.appendChild(capTxt);
-
                     row.appendChild(left); row.appendChild(right); card.appendChild(row);
 
                 } else {
+                    // 閲覧モードの中身（変更なし）
                     const imgBox = document.createElement('div'); imgBox.className = 'card-img-box';
-
-                    imgBox.oncontextmenu = (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showMetadataDialog(item);
-                    };
-
+                    imgBox.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showMetadataDialog(item); };
                     const img = document.createElement('img'); img.src = item.image;
                     imgBox.onclick = () => openViewer(item.id);
                     imgBox.appendChild(img);
                     card.appendChild(imgBox);
-
                     const info = document.createElement('div'); info.className = 'card-info';
                     const ctrlRow = document.createElement('div'); ctrlRow.className = 'view-control-row';
-
                     const btnGroup = document.createElement('div'); btnGroup.className = 'view-btn-group';
                     const makeViewBtn = (label, key, col) => {
                         const b = document.createElement('button'); b.className = 'metallic-btn';
@@ -1805,16 +1941,12 @@
                     btnGroup.appendChild(makeViewBtn('♥', 'love', '#ec4899'));
                     btnGroup.appendChild(makeViewBtn('⚑', 'bookmark', '#3b82f6'));
                     btnGroup.appendChild(makeViewBtn('✔', 'check', '#22c55e'));
-
                     const dateDiv = document.createElement('div'); dateDiv.className = 'view-date-text';
                     const dObj = new Date(item.date);
                     dateDiv.textContent = !isNaN(dObj.getTime()) ? `${dObj.getFullYear()}/${(dObj.getMonth() + 1).toString().padStart(2, '0')}/${dObj.getDate().toString().padStart(2, '0')} ${dObj.getHours().toString().padStart(2, '0')}:${dObj.getMinutes().toString().padStart(2, '0')}` : '';
-
                     ctrlRow.appendChild(btnGroup); ctrlRow.appendChild(dateDiv);
-
                     const t = document.createElement('div'); t.className = 'metal-text-inset';
                     t.textContent = item.title || 'No Title'; t.title = item.title;
-
                     info.appendChild(ctrlRow); info.appendChild(t); card.appendChild(info);
                 }
                 els.grid.appendChild(card);
@@ -1825,21 +1957,65 @@
             els.tagCloudBar.innerHTML = '';
             const counts = {};
             currentState.images.forEach(i => { if (!i._deleted) (i.tags || []).forEach(t => counts[t] = (counts[t] || 0) + 1); });
+            
             Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([t, c]) => {
-                const s = document.createElement('span'); s.className = 'header-tag'; s.textContent = `${t} (${c})`;
-                s.draggable = true;
-                s.ondragstart = (e) => {
+                const span = document.createElement('span'); // 変数名を s から span に変更
+                span.className = 'header-tag'; 
+                span.textContent = `${t} (${c})`;
+                span.draggable = true;
+
+                // ★修正：ドラッグ開始処理（背景透過のためのクローン作成）
+                span.ondragstart = (e) => {
                     if (!currentState.editMode) { e.preventDefault(); return; }
+                    
                     e.dataTransfer.effectAllowed = 'copy';
                     e.dataTransfer.setData('text/plain', t);
                     document.body.classList.add('is-dragging-tag');
+
+                    // 1. クローン作成
+                    const dragImage = span.cloneNode(true);
+                    
+                    // 2. 画面外に配置＆スタイル調整
+                    Object.assign(dragImage.style, {
+                        position: 'absolute',
+                        top: '-9999px',
+                        left: '-9999px',
+                        zIndex: '-1',
+                        background: window.getComputedStyle(span).backgroundColor,
+                        color: window.getComputedStyle(span).color,
+                        padding: window.getComputedStyle(span).padding,
+                        borderRadius: window.getComputedStyle(span).borderRadius,
+                        border: window.getComputedStyle(span).border,
+                        font: window.getComputedStyle(span).font,
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap'
+                    });
+
+                    document.body.appendChild(dragImage);
+
+                    // 3. ドラッグイメージに設定
+                    const rect = span.getBoundingClientRect();
+                    const offsetX = e.clientX - rect.left;
+                    const offsetY = e.clientY - rect.top;
+                    e.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
+
+                    // 4. 即座に削除
+                    setTimeout(() => {
+                        document.body.removeChild(dragImage);
+                    }, 0);
                 };
-                s.ondragend = () => document.body.classList.remove('is-dragging-tag');
-                s.onclick = () => {
-                    const query = `#${t}`; els.searchInput.value = query; currentState.search = query;
-                    els.searchResetBtn.classList.remove('hidden'); renderGrid();
+
+                span.ondragend = () => document.body.classList.remove('is-dragging-tag');
+                
+                span.onclick = () => {
+                    const query = `#${t}`; 
+                    els.searchInput.value = query; 
+                    currentState.search = query;
+                    els.searchResetBtn.classList.remove('hidden'); 
+                    renderGrid();
                 };
-                els.tagCloudBar.appendChild(s);
+                
+                els.tagCloudBar.appendChild(span);
             });
         }
 
@@ -1926,7 +2102,7 @@
                 btn.onclick = () => {
                     const val = btn.dataset.val;
                     if (currentState.filterRatings.has(val)) currentState.filterRatings.delete(val); else currentState.filterRatings.add(val);
-                    updateHeaderAgeUI(); 
+                    updateHeaderAgeUI();
                     renderGrid();
                     saveConfig();
                 };
@@ -1936,7 +2112,7 @@
                 btn.onclick = () => {
                     const f = btn.dataset.flag;
                     if (currentState.filterFlags.has(f)) currentState.filterFlags.delete(f); else currentState.filterFlags.add(f);
-                    updateHeaderFlagUI(); 
+                    updateHeaderFlagUI();
                     renderGrid();
                     saveConfig();
                 };
@@ -1949,7 +2125,7 @@
                 };
             });
 
-            els.orderBtn.onclick = () => { currentState.sortOrder = currentState.sortOrder === 'asc' ? 'desc' : 'asc'; updateOrderIcon(); renderGrid();  saveConfig();};
+            els.orderBtn.onclick = () => { currentState.sortOrder = currentState.sortOrder === 'asc' ? 'desc' : 'asc'; updateOrderIcon(); renderGrid(); saveConfig(); };
             document.querySelectorAll('.mode-item').forEach(btn => {
                 btn.onclick = () => {
                     document.querySelectorAll('.mode-item').forEach(b => b.classList.remove('active')); btn.classList.add('active');
@@ -2071,6 +2247,19 @@
         window.addEventListener('pywebviewready', init);
         window.addEventListener('DOMContentLoaded', () => { setTimeout(() => { if (!window.pywebview) init(); }, 100); });
     </script>
+
+    <div id="dropOverlay">
+        <div id="dropZoneSidebar" class="drop-zone">
+            <div class="drop-zone-icon">📂</div>
+            <div>フォルダを追加</div>
+            <div style="font-size:12px; font-weight:normal;">(リストとして取り込み)</div>
+        </div>
+        <div id="dropZoneMain" class="drop-zone">
+            <div class="drop-zone-icon">➕</div>
+            <div>画像を追加</div>
+            <div style="font-size:12px; font-weight:normal;">(現在のリストに追加)</div>
+        </div>
+    </div>
 </body>
 
 </html>

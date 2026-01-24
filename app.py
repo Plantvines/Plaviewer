@@ -280,6 +280,13 @@ class Api:
             return None
 
     def save_image_from_drop(self, folder_name, filename, b64_data):
+        # --- ★追加：拡張子チェック（門前払い）---
+        _, ext = os.path.splitext(filename)
+        if ext.lower() not in IMAGE_EXTS:
+            print(f"スキップ: 許可されていない形式です ({filename})")
+            return None
+        # --------------------------------------
+
         target_dir = os.path.join(self.base_dir, folder_name)
         if not os.path.exists(target_dir):
             return None
@@ -302,7 +309,7 @@ class Api:
         except Exception as e:
             print(f"Image Save Error: {e}")
             return None
-
+        
     def open_folder(self, folder_name):
         try:
             path = os.path.join(self.base_dir, folder_name)
@@ -403,11 +410,11 @@ api = Api()
 icon_path = resource_path('icon.ico')
 
 window = webview.create_window(
-    title='Plaviewer v1.1', 
+    title='Plaviewer v1.2', 
     url=html_path, 
     width=1200, 
     height=800, 
-    js_api=api
+    js_api=api,
 )
 
 webview.start(debug=False)
