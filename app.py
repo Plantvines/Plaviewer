@@ -3,7 +3,6 @@ import os
 import base64
 import json
 import sys
-import pathlib
 import shutil
 from PIL import Image
 import threading
@@ -31,6 +30,11 @@ class Api:
     def __init__(self):
         self.base_dir = os.path.join(BASE_DIR, 'list')
         os.makedirs(self.base_dir, exist_ok=True)
+
+    def get_constants(self):
+        return {
+            "IMAGE_EXTS": list(IMAGE_EXTS)
+        }
         
     def get_lists(self):
         try:
@@ -104,6 +108,24 @@ class Api:
         except Exception as e:
             print(f"Save Order Error: {e}")
             return False
+        
+    def load_app_config(self):
+        config_path = os.path.join(self.base_dir, 'config.json')
+        if not os.path.exists(config_path):
+            return None # 設定ファイルがない場合は何もしない
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return None
+
+    def save_app_config(self, config):
+        config_path = os.path.join(self.base_dir, 'config.json')
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Config Save Error: {e}")
 
     def _update_list_order_name(self, old_name, new_name):
         config_path = os.path.join(self.base_dir, 'lists.json')
@@ -381,7 +403,7 @@ api = Api()
 icon_path = resource_path('icon.ico')
 
 window = webview.create_window(
-    title='Plaviewer v1.0', 
+    title='Plaviewer v1.1', 
     url=html_path, 
     width=1200, 
     height=800, 

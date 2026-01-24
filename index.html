@@ -1234,6 +1234,22 @@
             }
         }
 
+        function saveConfig() {
+            if (!window.pywebview) return;
+            
+            const config = {
+                filterRatings: Array.from(currentState.filterRatings),
+                filterFlags: Array.from(currentState.filterFlags),
+                slideshowMode: slideshowState.mode,
+                slideshowInterval: slideshowState.interval,
+                gridColumns: currentState.gridColumns,
+                sortMode: currentState.sortMode,
+                sortOrder: currentState.sortOrder
+            };
+            
+            pywebview.api.save_app_config(config);
+        }
+
         function createTagEditor(item, currentTags) {
             const container = document.createElement('div');
             container.className = 'tag-editor-container';
@@ -1290,6 +1306,41 @@
 
         async function loadFromPython() {
             try {
+                const config = await pywebview.api.load_app_config();
+                if (config) {
+                    if (config.filterRatings) currentState.filterRatings = new Set(config.filterRatings);
+                    if (config.filterFlags) currentState.filterFlags = new Set(config.filterFlags);
+                    if (config.slideshowMode) slideshowState.mode = config.slideshowMode;
+                    if (config.slideshowInterval) slideshowState.interval = config.slideshowInterval;
+
+                    if (config.gridColumns) {
+                        currentState.gridColumns = config.gridColumns;
+                        document.querySelectorAll('.col-switch-btn').forEach(btn => {
+                            if (parseInt(btn.dataset.col) === currentState.gridColumns) {
+                                btn.classList.add('active');
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        });
+                    }
+
+                    if (config.sortMode) currentState.sortMode = config.sortMode;
+                    if (config.sortOrder) currentState.sortOrder = config.sortOrder;
+
+                    document.querySelectorAll('.sort-btn').forEach(btn => {
+                        if (btn.dataset.sort === currentState.sortMode) btn.classList.add('active');
+                        else btn.classList.remove('active');
+                    });
+                    
+                    updateOrderIcon();
+                    updateHeaderAgeUI();
+                    updateHeaderFlagUI();
+                    
+                    const radio = document.querySelector(`input[name="slideOrder"][value="${slideshowState.mode}"]`);
+                    if (radio) radio.checked = true;
+                    if (els.slideIntervalSelect) els.slideIntervalSelect.value = slideshowState.interval;
+                }
+
                 const folders = await pywebview.api.get_lists();
                 if (folders.length > 0) {
                     currentState.tabs = folders;
@@ -1305,7 +1356,7 @@
             els.grid.innerHTML = '<div class="empty-state">読み込み中...</div>';
             try {
                 const list = await pywebview.api.get_image_list(currentState.activeTabId);
-                currentState.images = normalizeImages(list);                
+                currentState.images = normalizeImages(list);
                 renderGrid();
                 renderTagCloud()
             } catch (e) { console.error(e); }
@@ -1622,9 +1673,11 @@
                     const left = document.createElement('div'); left.className = 'edit-col-left';
                     const imgBox = document.createElement('div'); imgBox.className = 'card-img-box'; imgBox.style.borderRadius = '4px';
 
-                    const infoBtn = document.createElement('div'); infoBtn.className = 'meta-info-btn'; infoBtn.textContent = 'i';
-                    infoBtn.onclick = (e) => { e.stopPropagation(); showMetadataDialog(item); };
-                    imgBox.appendChild(infoBtn);
+                    imgBox.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showMetadataDialog(item);
+                    };
 
                     const img = document.createElement('img'); img.src = item.image; img.draggable = false;
                     imgBox.onclick = () => openViewer(item.id);
@@ -1655,17 +1708,49 @@
                     const right = document.createElement('div'); right.className = 'edit-col-right';
 
                     const titleRow = document.createElement('div');
-                    titleRow.style.display = 'flex'; titleRow.style.justifyContent = 'space-between'; titleRow.style.alignItems = 'center';
-                    const tLabel = document.createElement('label'); tLabel.className = 'edit-label'; tLabel.textContent = 'タイトル';
-                    const delBtn = document.createElement('button'); delBtn.className = 'metallic-btn trash';
-                    delBtn.style.fontSize = '12px'; delBtn.style.padding = '0 8px'; delBtn.style.height = '20px';
+                    titleRow.style.display = 'flex';
+                    titleRow.style.justifyContent = 'space-between';
+                    titleRow.style.alignItems = 'center';
+
+                    const titleLeft = document.createElement('div');
+                    titleLeft.style.display = 'flex';
+                    titleLeft.style.alignItems = 'center';
+                    titleLeft.style.gap = '8px';
+
+                    const tLabel = document.createElement('label');
+                    tLabel.className = 'edit-label';
+                    tLabel.textContent = 'タイトル';
+                    tLabel.style.marginBottom = '0';
+
+                    const iBtn = document.createElement('button');
+                    iBtn.className = 'metallic-btn';
+                    iBtn.textContent = 'i';
+                    iBtn.title = 'メタデータ表示';
+                    iBtn.style.fontSize = '12px';
+                    iBtn.style.padding = '0 8px';
+                    iBtn.style.height = '20px';
+                    iBtn.style.fontWeight = 'bold';
+                    iBtn.style.color = '#60a5fa';
+                    iBtn.onclick = () => showMetadataDialog(item);
+
+                    titleLeft.appendChild(tLabel);
+                    titleLeft.appendChild(iBtn);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'metallic-btn trash';
+                    delBtn.style.fontSize = '12px';
+                    delBtn.style.padding = '0 8px';
+                    delBtn.style.height = '20px';
                     delBtn.textContent = '🗑';
+                    delBtn.title = '削除';
                     delBtn.onclick = () => {
                         if (confirm('削除しますか？')) {
                             item._deleted = true; triggerAutoSave(0);
                         }
                     };
-                    titleRow.appendChild(tLabel); titleRow.appendChild(delBtn);
+
+                    titleRow.appendChild(titleLeft);
+                    titleRow.appendChild(delBtn);
                     right.appendChild(titleRow);
 
                     const tInput = document.createElement('input'); tInput.className = 'card-input-area';
@@ -1692,6 +1777,13 @@
 
                 } else {
                     const imgBox = document.createElement('div'); imgBox.className = 'card-img-box';
+
+                    imgBox.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showMetadataDialog(item);
+                    };
+
                     const img = document.createElement('img'); img.src = item.image;
                     imgBox.onclick = () => openViewer(item.id);
                     imgBox.appendChild(img);
@@ -1803,10 +1895,14 @@
             els.slideSettingsBtn.onclick = () => els.slideSettingsDialog.classList.add('active');
             els.closeSlideSettingsBtn.onclick = () => els.slideSettingsDialog.classList.remove('active');
             els.slideSettingsDialog.onclick = (e) => { if (e.target === els.slideSettingsDialog) els.slideSettingsDialog.classList.remove('active'); };
-            document.querySelectorAll('input[name="slideOrder"]').forEach(r => r.onchange = (e) => slideshowState.mode = e.target.value);
+            document.querySelectorAll('input[name="slideOrder"]').forEach(r => r.onchange = (e) => {
+                slideshowState.mode = e.target.value;
+                saveConfig();
+            });
             els.slideIntervalSelect.onchange = (e) => {
                 slideshowState.interval = parseInt(e.target.value);
                 if (slideshowState.playing) { clearInterval(slideshowState.timer); slideshowState.timer = setInterval(nextSlide, slideshowState.interval); }
+                saveConfig();
             };
 
             els.deleteTabBtn.onclick = async () => {
@@ -1830,33 +1926,41 @@
                 btn.onclick = () => {
                     const val = btn.dataset.val;
                     if (currentState.filterRatings.has(val)) currentState.filterRatings.delete(val); else currentState.filterRatings.add(val);
-                    updateHeaderAgeUI(); renderGrid();
+                    updateHeaderAgeUI(); 
+                    renderGrid();
+                    saveConfig();
                 };
             });
+
             document.querySelectorAll('.flag-filter-item').forEach(btn => {
                 btn.onclick = () => {
                     const f = btn.dataset.flag;
                     if (currentState.filterFlags.has(f)) currentState.filterFlags.delete(f); else currentState.filterFlags.add(f);
-                    updateHeaderFlagUI(); renderGrid();
+                    updateHeaderFlagUI(); 
+                    renderGrid();
+                    saveConfig();
                 };
             });
+
             document.querySelectorAll('.sort-btn').forEach(btn => {
                 btn.onclick = () => {
                     document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
-                    currentState.sortMode = btn.dataset.sort; updateOrderIcon(); renderGrid();
+                    currentState.sortMode = btn.dataset.sort; updateOrderIcon(); renderGrid(); saveConfig();
                 };
             });
-            els.orderBtn.onclick = () => { currentState.sortOrder = currentState.sortOrder === 'asc' ? 'desc' : 'asc'; updateOrderIcon(); renderGrid(); };
+
+            els.orderBtn.onclick = () => { currentState.sortOrder = currentState.sortOrder === 'asc' ? 'desc' : 'asc'; updateOrderIcon(); renderGrid();  saveConfig();};
             document.querySelectorAll('.mode-item').forEach(btn => {
                 btn.onclick = () => {
                     document.querySelectorAll('.mode-item').forEach(b => b.classList.remove('active')); btn.classList.add('active');
                     currentState.editMode = (btn.dataset.mode === 'edit'); renderGrid();
                 };
             });
+
             document.querySelectorAll('.col-switch-btn').forEach(btn => {
                 btn.onclick = () => {
                     document.querySelectorAll('.col-switch-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
-                    currentState.gridColumns = parseInt(btn.dataset.col); renderGrid();
+                    currentState.gridColumns = parseInt(btn.dataset.col); renderGrid(); saveConfig();
                 };
             });
 
